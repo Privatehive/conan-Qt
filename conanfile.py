@@ -283,4 +283,5 @@ class QtConan(ConanFile):
 
     def package_info(self):
         self.env_info.path.append(os.path.join(self.package_folder, "bin"))
+        self.env_info.path.append(os.path.join(self.package_folder, "qttools/bin"))
         self.env_info.CMAKE_PREFIX_PATH.append(self.package_folder)
