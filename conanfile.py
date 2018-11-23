@@ -85,6 +85,7 @@ class QtConan(ConanFile):
         if self.options.openssl:
             self.requires("OpenSSL/1.1.0g@conan/stable")
             self.options["OpenSSL"].no_zlib = True
+            self.options["OpenSSL"].shared = True
         if self.options.widgets == True:
             self.options.GUI = True
         if not self.options.GUI:
