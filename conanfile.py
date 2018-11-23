@@ -244,7 +244,11 @@ class QtConan(ConanFile):
 
     def _build_android(self, args):
         # end workaround
-        args += ["-platform win32-g++", "-xplatform android-g++", "--disable-rpath", "-skip qttranslations", "-skip qtserialport"]
+        args += ["-platform win32-g++", "--disable-rpath", "-skip qttranslations", "-skip qtserialport"]
+        if self.settings.compiler == 'gcc':
+            args += ["-xplatform android-g++"]
+        else:
+            args += ["-xplatform android-clang"]
         args += ["-android-ndk-platform android-%s" % (str(self.settings.os.api_level))]
         args += ["-android-ndk " + self.deps_env_info['android-ndk'].NDK_ROOT]
         args += ["-android-sdk " + self.deps_env_info['android-sdk'].SDK_ROOT]
