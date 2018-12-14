@@ -58,7 +58,7 @@ class QtConan(ConanFile):
     def build_requirements(self):
         if self.options.GUI:
             pack_names = []
-            if tools.os_info.linux_distro == "ubuntu" or tools.os_info.linux_distro == "debian": 
+            if tools.os_info.linux_distro == "ubuntu" or tools.os_info.linux_distro == "debian":
                 pack_names = ["libxcb1-dev", "libx11-dev", "libc6-dev"]
                 if self.options.opengl == "desktop":
                     pack_names.append("libgl1-mesa-dev")
@@ -108,7 +108,7 @@ class QtConan(ConanFile):
     def system_requirements(self):
         if self.options.GUI:
             pack_names = []
-            if tools.os_info.linux_distro == "ubuntu" or tools.os_info.linux_distro == "debian": 
+            if tools.os_info.linux_distro == "ubuntu" or tools.os_info.linux_distro == "debian":
                 pack_names = ["libxcb1", "libx11-6"]
             elif tools.os_info.is_linux and tools.os_info.linux_distro != "opensuse":
                 pack_names = ["libxcb"]
@@ -126,7 +126,8 @@ class QtConan(ConanFile):
         if tools.os_info.is_windows:
             tools.get("%s.zip" % url)
         else:
-            self.run("wget -qO- %s.tar.xz | tar -xJ " % url)
+            tools.get("%s.tar.xz" % url)
+            #self.run("wget -qO- %s.tar.xz | tar -xJ " % url)
         shutil.move("qt-everywhere-src-%s" % self.version, "qt5")
 
     def build(self):
@@ -174,10 +175,10 @@ class QtConan(ConanFile):
             libs = self.deps_cpp_info["OpenSSL"].libs
             lib_paths = self.deps_cpp_info["OpenSSL"].lib_paths
             os.environ["OPENSSL_LIBS"] = " ".join(["-L"+i for i in lib_paths] + ["-l"+i for i in libs])
-        
+
         if self.options.config:
             args.append(str(self.options.config))
-            
+
         if self.settings.os == "Windows":
             if self.settings.compiler == "Visual Studio":
                 self._build_msvc(args)
@@ -187,8 +188,8 @@ class QtConan(ConanFile):
             self._build_android(args)
         else:
             self._build_unix(args)
-            
-        with open('qtbase/bin/qt.conf', 'w') as f: 
+
+        with open('qtbase/bin/qt.conf', 'w') as f:
             f.write('[Paths]\nPrefix = ..')
 
     def _build_msvc(self, args):
