@@ -253,6 +253,7 @@ class QtConan(ConanFile):
             args += ["-xplatform android-clang"]
         args += ["-android-ndk-platform android-%s" % (str(self.settings.os.api_level))]
         args += ["-android-ndk " + self.deps_env_info['android-ndk'].NDK_ROOT]
+        
         args += ["-android-sdk " + self.deps_env_info['android-sdk'].SDK_ROOT]
         args += ["-android-ndk-host %s-%s" % (str(self.settings.os_build).lower(), str(self.settings.arch_build))]
         args += ["-android-toolchain-version " + self.deps_env_info['android-ndk'].TOOLCHAIN_VERSION]
@@ -272,13 +273,10 @@ class QtConan(ConanFile):
 
         self.output.info("Using '%d' threads" % tools.cpu_count())
         with tools.environment_append({
-            #"ANDROID_API_VERSION": "android-" + str(self.settings.os.api_level),
-            #"ANDROID_SDK_ROOT": self.deps_env_info['android-sdk'].SDK_ROOT,
-            #"ANDROID_TARGET_ARCH": "armeabi-v7a",
-            #"ANDROID_BUILD_TOOLS_REVISION": self.deps_env_info['android-sdk'].ANDROID_BUILD_TOOLS_REVISION,
-            #"ANDROID_NDK_PATH": self.deps_env_info['android-ndk'].NDK_ROOT,
-            #"ANDROID_TOOLCHAIN_VERSION": self.deps_env_info['android-ndk'].TOOLCHAIN_VERSION,
-            #"ANDROID_NDK_HOST": "windows-x86_64"
+            # We have to remove the env. vars set by conan android-ndk so configure doesn't read them (on windows they contain backslashes).
+            "NDK_ROOT": None,
+            "ANDROID_NDK_ROOT": None,
+            "SYSROOT": None
             }):
             self.run(tools.unix_path("%s/qt5/configure %s" % (self.source_folder, " ".join(args))), win_bash=True, msys_mingw=True)
             self.run("make", win_bash=True)
