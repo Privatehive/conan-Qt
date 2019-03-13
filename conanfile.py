@@ -58,7 +58,7 @@ class QtConan(ConanFile):
     def build_requirements(self):
         if self.options.GUI:
             pack_names = []
-            if tools.os_info.linux_distro == "ubuntu" or tools.os_info.linux_distro == "debian":
+            if tools.os_info.linux_distro == "ubuntu" or tools.os_info.linux_distro == "debian" or tools.os_info.linux_distro == "neon":
                 pack_names = ["libxcb1-dev", "libx11-dev", "libc6-dev"]
                 if self.options.opengl == "desktop":
                     pack_names.append("libgl1-mesa-dev")
@@ -108,7 +108,7 @@ class QtConan(ConanFile):
     def system_requirements(self):
         if self.options.GUI:
             pack_names = []
-            if tools.os_info.linux_distro == "ubuntu" or tools.os_info.linux_distro == "debian":
+            if tools.os_info.linux_distro == "ubuntu" or tools.os_info.linux_distro == "debian" or tools.os_info.linux_distro == "neon":
                 pack_names = ["libxcb1", "libx11-6"]
             elif tools.os_info.is_linux and tools.os_info.linux_distro != "opensuse":
                 pack_names = ["libxcb"]
