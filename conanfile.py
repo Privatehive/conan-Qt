@@ -130,9 +130,18 @@ class QtConan(ConanFile):
             #self.run("wget -qO- %s.tar.xz | tar -xJ " % url)
         shutil.move("qt-everywhere-src-%s" % self.version, "qt5")
 
+    def _toUnixPath(self, paths):
+        if self.settings.os == "Android" and self.settings.os_build == "Windows":
+            if(isinstance(paths, list)):
+                return list(map(lambda x: tools.unix_path(x), paths))
+            else:
+                return tools.unix_path(paths)
+        else:
+            return paths
+
     def build(self):
         args = ["-opensource", "-confirm-license", "-silent", "-nomake examples", "-nomake tests",
-                "-prefix %s" % self.package_folder]
+                "-prefix %s" % self._toUnixPath(self.package_folder)]
         if not self.options.GUI:
             args.append("-no-gui")
         if not self.options.widgets:
@@ -171,9 +180,9 @@ class QtConan(ConanFile):
                 args += ["-openssl-linked"]
             else:
                 args += ["-openssl"]
-            args += ["-I %s" % i for i in self.deps_cpp_info["OpenSSL"].include_paths]
-            libs = self.deps_cpp_info["OpenSSL"].libs
-            lib_paths = self.deps_cpp_info["OpenSSL"].lib_paths
+            args += ["-I %s" % i for i in self._toUnixPath(self.deps_cpp_info["OpenSSL"].include_paths)]
+            libs = self._toUnixPath(self.deps_cpp_info["OpenSSL"].libs)
+            lib_paths = self._toUnixPath(self.deps_cpp_info["OpenSSL"].lib_paths)
             os.environ["OPENSSL_LIBS"] = " ".join(["-L"+i for i in lib_paths] + ["-l"+i for i in libs])
 
         if self.options.config:
@@ -252,11 +261,11 @@ class QtConan(ConanFile):
         else:
             args += ["-xplatform android-clang"]
         args += ["-android-ndk-platform android-%s" % (str(self.settings.os.api_level))]
-        args += ["-android-ndk " + self.deps_env_info['android-ndk'].NDK_ROOT]
-        args += ["-android-sdk " + self.deps_env_info['android-sdk'].SDK_ROOT]
+        args += ["-android-ndk " + tools.unix_path(self.deps_env_info['android-ndk'].NDK_ROOT)]
+        args += ["-android-sdk " + tools.unix_path(self.deps_env_info['android-sdk'].SDK_ROOT)]
         args += ["-android-ndk-host %s-%s" % (str(self.settings.os_build).lower(), str(self.settings.arch_build))]
         args += ["-android-toolchain-version " + self.deps_env_info['android-ndk'].TOOLCHAIN_VERSION]
-        #args += ["-sysroot " + self.deps_env_info['android-ndk'].SYSROOT]
+        args += ["-sysroot " + tools.unix_path(self.deps_env_info['android-ndk'].SYSROOT)]
         args += ["-device-option CROSS_COMPILE=" + self.deps_env_info['android-ndk'].CHOST + "-"]
 
         if str(self.settings.arch).startswith('x86'):
@@ -272,10 +281,10 @@ class QtConan(ConanFile):
 
         self.output.info("Using '%d' threads" % tools.cpu_count())
         with tools.environment_append({
-                # We have to remove the env. vars set by conan android-ndk so configure doesn't read them (on windows they contain backslashes).
-                "NDK_ROOT": None,
-                "ANDROID_NDK_ROOT": None,
-                "SYSROOT": None
+                # The env. vars set by conan android-ndk. Configure doesn't read them (on windows they contain backslashes).
+                "NDK_ROOT": tools.unix_path(tools.get_env("NDK_ROOT")),
+                "ANDROID_NDK_ROOT": tools.unix_path(tools.get_env("NDK_ROOT")),
+                "SYSROOT": tools.unix_path(tools.get_env("NDK_ROOT"))
             }):
             self.run(tools.unix_path("%s/qt5/configure " % self.source_folder) + " ".join(args), win_bash=True, msys_mingw=True)
             self.run("make", win_bash=True)
