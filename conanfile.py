@@ -284,7 +284,7 @@ class QtConan(ConanFile):
                 # The env. vars set by conan android-ndk. Configure doesn't read them (on windows they contain backslashes).
                 "NDK_ROOT": tools.unix_path(tools.get_env("NDK_ROOT")),
                 "ANDROID_NDK_ROOT": tools.unix_path(tools.get_env("NDK_ROOT")),
-                "SYSROOT": tools.unix_path(tools.get_env("NDK_ROOT"))
+                "SYSROOT": None
             }):
             self.run(tools.unix_path("%s/qt5/configure " % self.source_folder) + " ".join(args), win_bash=True, msys_mingw=True)
             self.run("make", win_bash=True)
