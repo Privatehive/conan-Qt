@@ -265,7 +265,7 @@ class QtConan(ConanFile):
         args += ["-android-sdk " + tools.unix_path(self.deps_env_info['android-sdk'].SDK_ROOT)]
         args += ["-android-ndk-host %s-%s" % (str(self.settings.os_build).lower(), str(self.settings.arch_build))]
         args += ["-android-toolchain-version " + self.deps_env_info['android-ndk'].TOOLCHAIN_VERSION]
-        args += ["-sysroot " + tools.unix_path(self.deps_env_info['android-ndk'].SYSROOT)]
+        #args += ["-sysroot " + tools.unix_path(self.deps_env_info['android-ndk'].SYSROOT)]
         args += ["-device-option CROSS_COMPILE=" + self.deps_env_info['android-ndk'].CHOST + "-"]
 
         if str(self.settings.arch).startswith('x86'):
