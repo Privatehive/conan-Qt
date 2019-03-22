@@ -58,7 +58,7 @@ class QtConan(ConanFile):
     def build_requirements(self):
         if self.options.GUI:
             pack_names = []
-            if tools.os_info.linux_distro == "ubuntu" or tools.os_info.linux_distro == "debian" or tools.os_info.linux_distro == "neon":
+            if tools.os_info.linux_distro == "ubuntu" or tools.os_info.linux_distro == "debian" or tools.os_info.linux_distro == "neon" or tools.os_info.linux_distro == "linuxmint":
                 pack_names = ["libxcb1-dev", "libx11-dev", "libc6-dev"]
                 if self.options.opengl == "desktop":
                     pack_names.append("libgl1-mesa-dev")
@@ -108,7 +108,7 @@ class QtConan(ConanFile):
     def system_requirements(self):
         if self.options.GUI:
             pack_names = []
-            if tools.os_info.linux_distro == "ubuntu" or tools.os_info.linux_distro == "debian" or tools.os_info.linux_distro == "neon":
+            if tools.os_info.linux_distro == "ubuntu" or tools.os_info.linux_distro == "debian" or tools.os_info.linux_distro == "neon" or tools.os_info.linux_distro == "linuxmint":
                 pack_names = ["libxcb1", "libx11-6"]
             elif tools.os_info.is_linux and tools.os_info.linux_distro != "opensuse":
                 pack_names = ["libxcb"]
@@ -284,7 +284,7 @@ class QtConan(ConanFile):
                 # The env. vars set by conan android-ndk. Configure doesn't read them (on windows they contain backslashes).
                 "NDK_ROOT": tools.unix_path(tools.get_env("NDK_ROOT")),
                 "ANDROID_NDK_ROOT": tools.unix_path(tools.get_env("NDK_ROOT")),
-                "SYSROOT": None
+                "SYSROOT": tools.unix_path(tools.get_env("SYSROOT"))
             }):
             self.run(tools.unix_path("%s/qt5/configure " % self.source_folder) + " ".join(args), win_bash=True, msys_mingw=True)
             self.run("make", win_bash=True)
