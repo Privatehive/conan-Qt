@@ -94,6 +94,9 @@ class QtConan(ConanFile):
             self.options["android-ndk"].makeStandalone = False
             if self.options.opengl != "no":
                 self.options.opengl = "es2"
+        if self.settings.os == "iOS":
+            if self.options.opengl != "no":
+                self.options.opengl = "es2"
 
         assert QtConan.version == QtConan.submodules['qtbase']['branch']
         def enablemodule(self, module):
@@ -195,6 +198,8 @@ class QtConan(ConanFile):
                 self._build_mingw(args)
         elif self.settings.os == "Android":
             self._build_android(args)
+        elif self.settings.os == "iOS":
+            self._build_ios(args);
         else:
             self._build_unix(args)
 
@@ -252,6 +257,17 @@ class QtConan(ConanFile):
             self.run("%s/qt5/configure %s" % (self.source_folder, " ".join(args)))
             self.run("make")
             self.run("make install")
+
+    def _build_ios(self, args):
+        # end workaround
+        args += ["--disable-rpath", "-skip qttranslations", "-skip qtserialport"]
+        args += ["-xplatform macx-ios-clang"]
+        #args += ["-sysroot " + tools.unix_path(self.deps_env_info['android-ndk'].SYSROOT)]
+
+        self.output.info("Using '%d' threads" % tools.cpu_count())
+        self.run(("%s/qt5/configure " % self.source_folder) + " ".join(args))
+        self.run("make")
+        self.run("make install")
 
     def _build_android(self, args):
         # end workaround
