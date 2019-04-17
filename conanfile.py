@@ -132,6 +132,9 @@ class QtConan(ConanFile):
             tools.get("%s.tar.xz" % url)
             #self.run("wget -qO- %s.tar.xz | tar -xJ " % url)
         shutil.move("qt-everywhere-src-%s" % self.version, "qt5")
+        if self.settings.os == "iOS":
+            #tools.replace_in_file("qt5/qtdeclarative/tools/tools.pro", "qmltime", " ")
+            tools.replace_in_file("qt5/qtbase/src/plugins/platforms/ios/qioseventdispatcher.mm", "namespace", "Q_LOGGING_CATEGORY(lcEventDispatcher, \"qt.eventdispatcher\"); \n namespace")
 
     def _toUnixPath(self, paths):
         if self.settings.os == "Android" and self.settings.os_build == "Windows":
