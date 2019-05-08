@@ -31,7 +31,7 @@ class QtConan(ConanFile):
     submodules = getsubmodules()
 
     name = "Qt"
-    version = "5.12.1"
+    version = "5.12.0"
     description = "Conan.io package for Qt library."
     url = "https://github.com/Tereius/conan-Qt"
     homepage = "https://www.qt.io/"
@@ -58,7 +58,7 @@ class QtConan(ConanFile):
     def build_requirements(self):
         if self.options.GUI:
             pack_names = []
-            if tools.os_info.linux_distro == "ubuntu" or tools.os_info.linux_distro == "debian":
+            if tools.os_info.linux_distro == "ubuntu" or tools.os_info.linux_distro == "debian" or tools.os_info.linux_distro == "neon" or tools.os_info.linux_distro == "linuxmint":
                 pack_names = ["libxcb1-dev", "libx11-dev", "libc6-dev"]
                 if self.options.opengl == "desktop":
                     pack_names.append("libgl1-mesa-dev")
@@ -76,14 +76,15 @@ class QtConan(ConanFile):
         if self.settings.os == 'Android':
             self.build_requires("android-ndk/r17b@tereius/stable")
             self.build_requires("android-sdk/26.1.1@tereius/stable")
-            self.build_requires("java_installer/8.0.144@bincrafters/stable")
+            self.build_requires("java_installer/8.0.144@tereius/stable")
             if self.settings.os_build == 'Windows':
                 self.build_requires("strawberryperl/5.26.0@conan/stable")
-                self.build_requires("msys2_installer/latest@bincrafters/stable")
+                self.build_requires("msys2/20161025@tereius/stable")
+                self.build_requires_options['msys2'].provideMinGW = True
 
     def configure(self):
         if self.options.openssl:
-            self.requires("OpenSSL/1.1.0g@tereius/stable")
+            self.requires("OpenSSL/1.1.1b@tereius/stable")
             self.options["OpenSSL"].no_zlib = True
             self.options["OpenSSL"].shared = True
         if self.options.widgets == True:
@@ -92,6 +93,9 @@ class QtConan(ConanFile):
             self.options.opengl = "no"
         if self.settings.os == "Android":
             self.options["android-ndk"].makeStandalone = False
+            if self.options.opengl != "no":
+                self.options.opengl = "es2"
+        if self.settings.os == "iOS":
             if self.options.opengl != "no":
                 self.options.opengl = "es2"
 
@@ -108,7 +112,7 @@ class QtConan(ConanFile):
     def system_requirements(self):
         if self.options.GUI:
             pack_names = []
-            if tools.os_info.linux_distro == "ubuntu" or tools.os_info.linux_distro == "debian":
+            if tools.os_info.linux_distro == "ubuntu" or tools.os_info.linux_distro == "debian" or tools.os_info.linux_distro == "neon" or tools.os_info.linux_distro == "linuxmint":
                 pack_names = ["libxcb1", "libx11-6"]
             elif tools.os_info.is_linux and tools.os_info.linux_distro != "opensuse":
                 pack_names = ["libxcb"]
@@ -129,10 +133,22 @@ class QtConan(ConanFile):
             tools.get("%s.tar.xz" % url)
             #self.run("wget -qO- %s.tar.xz | tar -xJ " % url)
         shutil.move("qt-everywhere-src-%s" % self.version, "qt5")
+        if self.settings.os == "iOS":
+            #tools.replace_in_file("qt5/qtdeclarative/tools/tools.pro", "qmltime", " ")
+            tools.replace_in_file("qt5/qtbase/src/plugins/platforms/ios/qioseventdispatcher.mm", "namespace", "Q_LOGGING_CATEGORY(lcEventDispatcher, \"qt.eventdispatcher\"); \n namespace")
+
+    def _toUnixPath(self, paths):
+        if self.settings.os == "Android" and self.settings.os_build == "Windows":
+            if(isinstance(paths, list)):
+                return list(map(lambda x: tools.unix_path(x), paths))
+            else:
+                return tools.unix_path(paths)
+        else:
+            return paths
 
     def build(self):
         args = ["-opensource", "-confirm-license", "-silent", "-nomake examples", "-nomake tests",
-                "-prefix %s" % self.package_folder]
+                "-prefix %s" % self._toUnixPath(self.package_folder)]
         if not self.options.GUI:
             args.append("-no-gui")
         if not self.options.widgets:
@@ -171,9 +187,9 @@ class QtConan(ConanFile):
                 args += ["-openssl-linked"]
             else:
                 args += ["-openssl"]
-            args += ["-I %s" % i for i in self.deps_cpp_info["OpenSSL"].include_paths]
-            libs = self.deps_cpp_info["OpenSSL"].libs
-            lib_paths = self.deps_cpp_info["OpenSSL"].lib_paths
+            args += ["-I %s" % i for i in self._toUnixPath(self.deps_cpp_info["OpenSSL"].include_paths)]
+            libs = self._toUnixPath(self.deps_cpp_info["OpenSSL"].libs)
+            lib_paths = self._toUnixPath(self.deps_cpp_info["OpenSSL"].lib_paths)
             os.environ["OPENSSL_LIBS"] = " ".join(["-L"+i for i in lib_paths] + ["-l"+i for i in libs])
 
         if self.options.config:
@@ -186,6 +202,8 @@ class QtConan(ConanFile):
                 self._build_mingw(args)
         elif self.settings.os == "Android":
             self._build_android(args)
+        elif self.settings.os == "iOS":
+            self._build_ios(args);
         else:
             self._build_unix(args)
 
@@ -244,6 +262,19 @@ class QtConan(ConanFile):
             self.run("make")
             self.run("make install")
 
+    def _build_ios(self, args):
+        # end workaround
+        args += ["--disable-rpath", "-skip qttranslations", "-skip qtserialport"]
+        args += ["-xplatform macx-ios-clang"]
+        args += ["-sdk iphoneos"]
+        #args += ["-sysroot " + tools.unix_path(self.deps_env_info['android-ndk'].SYSROOT)]
+
+        with tools.environment_append({"MAKEFLAGS":"-j %d" % tools.cpu_count()}):
+            self.output.info("Using '%d' threads" % tools.cpu_count())
+            self.run(("%s/qt5/configure " % self.source_folder) + " ".join(args))
+            self.run("make")
+            self.run("make install")
+
     def _build_android(self, args):
         # end workaround
         args += ["-platform win32-g++", "--disable-rpath", "-skip qttranslations", "-skip qtserialport"]
@@ -252,12 +283,11 @@ class QtConan(ConanFile):
         else:
             args += ["-xplatform android-clang"]
         args += ["-android-ndk-platform android-%s" % (str(self.settings.os.api_level))]
-        args += ["-android-ndk " + self.deps_env_info['android-ndk'].NDK_ROOT]
-        
-        args += ["-android-sdk " + self.deps_env_info['android-sdk'].SDK_ROOT]
+        args += ["-android-ndk " + tools.unix_path(self.deps_env_info['android-ndk'].NDK_ROOT)]
+        args += ["-android-sdk " + tools.unix_path(self.deps_env_info['android-sdk'].SDK_ROOT)]
         args += ["-android-ndk-host %s-%s" % (str(self.settings.os_build).lower(), str(self.settings.arch_build))]
         args += ["-android-toolchain-version " + self.deps_env_info['android-ndk'].TOOLCHAIN_VERSION]
-        #args += ["-sysroot " + self.deps_env_info['android-ndk'].SYSROOT]
+        #args += ["-sysroot " + tools.unix_path(self.deps_env_info['android-ndk'].SYSROOT)]
         args += ["-device-option CROSS_COMPILE=" + self.deps_env_info['android-ndk'].CHOST + "-"]
 
         if str(self.settings.arch).startswith('x86'):
@@ -273,12 +303,12 @@ class QtConan(ConanFile):
 
         self.output.info("Using '%d' threads" % tools.cpu_count())
         with tools.environment_append({
-            # We have to remove the env. vars set by conan android-ndk so configure doesn't read them (on windows they contain backslashes).
-            "NDK_ROOT": None,
-            "ANDROID_NDK_ROOT": None,
-            "SYSROOT": None
+                # The env. vars set by conan android-ndk. Configure doesn't read them (on windows they contain backslashes).
+                "NDK_ROOT": tools.unix_path(tools.get_env("NDK_ROOT")),
+                "ANDROID_NDK_ROOT": tools.unix_path(tools.get_env("NDK_ROOT")),
+                "SYSROOT": tools.unix_path(tools.get_env("SYSROOT"))
             }):
-            self.run(tools.unix_path("%s/qt5/configure %s" % (self.source_folder, " ".join(args))), win_bash=True, msys_mingw=True)
+            self.run(tools.unix_path("%s/qt5/configure " % self.source_folder) + " ".join(args), win_bash=True, msys_mingw=True)
             self.run("make", win_bash=True)
             self.run("make install", win_bash=True)
 
