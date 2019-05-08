@@ -243,6 +243,7 @@ class QtConan(ConanFile):
 
     def _build_unix(self, args):
         if self.settings.os == "Linux":
+            args.append("-no-use-gold-linker") # QTBUG-65071
             if self.options.GUI:
                 args.append("-qt-xcb")
             if self.settings.arch == "x86":
