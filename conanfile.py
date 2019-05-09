@@ -56,23 +56,6 @@ class QtConan(ConanFile):
     build_policy = "missing"
 
     def build_requirements(self):
-        if self.options.GUI:
-            pack_names = []
-            if tools.os_info.linux_distro == "ubuntu" or tools.os_info.linux_distro == "debian" or tools.os_info.linux_distro == "neon" or tools.os_info.linux_distro == "linuxmint":
-                pack_names = ["libxcb1-dev", "libx11-dev", "libc6-dev"]
-                if self.options.opengl == "desktop":
-                    pack_names.append("libgl1-mesa-dev")
-            elif tools.os_info.is_linux and tools.os_info.linux_distro != "arch":
-                pack_names = ["libxcb-devel", "libX11-devel", "glibc-devel"]
-                if self.options.opengl == "desktop":
-                    pack_names.append("mesa-libGL-devel")
-
-            if self.settings.arch == "x86":
-                pack_names = [item+":i386" for item in pack_names]
-
-            if pack_names:
-                installer = tools.SystemPackageTool()
-                installer.install(" ".join(pack_names)) # Install the package
         if self.settings.os == 'Android':
             self.build_requires("android-ndk/r17b@tereius/stable")
             self.build_requires("android-sdk/26.1.1@tereius/stable")
@@ -110,19 +93,47 @@ class QtConan(ConanFile):
                 enablemodule(self, module)
 
     def system_requirements(self):
-        if self.options.GUI:
-            pack_names = []
-            if tools.os_info.linux_distro == "ubuntu" or tools.os_info.linux_distro == "debian" or tools.os_info.linux_distro == "neon" or tools.os_info.linux_distro == "linuxmint":
-                pack_names = ["libxcb1", "libx11-6"]
-            elif tools.os_info.is_linux and tools.os_info.linux_distro != "opensuse":
-                pack_names = ["libxcb"]
-
-            if self.settings.arch == "x86":
-                pack_names = [item+":i386" for item in pack_names]
-
-            if pack_names:
+        if self.settings.os == "Linux" and tools.os_info.is_linux:
+            if tools.os_info.with_apt:
+                pack_names = []
+                arch_suffix = ''
+                if self.settings.arch == "x86":
+                    arch_suffix = ':i386'
+                elif self.settings.arch == "x86_64":
+                    arch_suffix = ':amd64'
+                if self.options.GUI:
+                    pack_names.extend(["libxcb1-dev", "libx11-dev", "libfontconfig1-dev", "libfreetype6-dev", "libxext-dev", "libxfixes-dev", "libxi-dev", "libxrender-dev", "libx11-xcb-dev", "libxcb-glx0-dev"])
+                    if self.options.opengl == "desktop":
+                        pack_names.append("libgl1-mesa-dev")
+                if self.options.qtmultimedia:
+                    pack_names.extend(["libasound2-dev", "libpulse-dev", "libgstreamer1.0-dev", "libgstreamer-plugins-base1.0-dev"])
+                if self.options.qtwebengine:
+                    pack_names.extend(["libssl-dev", "libxcursor-dev", "libxcomposite-dev", "libxdamage-dev", "libxrandr-dev", "libdbus-1-dev", "libfontconfig1-dev", "libcap-dev", "libxtst-dev", "libpulse-dev", "libudev-dev", "libpci-dev", "libnss3-dev", "libasound2-dev", "libxss-dev", "libegl1-mesa-dev", "gperf", "bison"])
+                if self.options.qtdoc:
+                    pack_names.extend(["libclang-6.0-dev", "llvm-6.0"])        
                 installer = tools.SystemPackageTool()
-                installer.install(" ".join(pack_names)) # Install the package
+                installer.install(list(map(lambda x: x + arch_suffix, pack_names)))
+            elif tools.os_info.with_yum:
+                pack_names = []
+                arch_suffix = ''
+                if self.settings.arch == "x86":
+                    arch_suffix = '.i686'
+                elif self.settings.arch == "x86_64":
+                    arch_suffix = '.x86_64'
+                if self.options.GUI:
+                    pack_names.extend(["libxcb-devel", "libX11-devel", "fontconfig-devel", "freetype-devel", "libXext-devel", "libXfixes-devel", "libXi-devel", "libXrender-devel"])
+                    if self.options.opengl == "desktop":
+                        pack_names.append("mesa-libGL-devel")
+                if self.options.qtmultimedia:
+                    pack_names.extend(["alsa-lib-devel", "pulseaudio-libs-devel", "gstreamer-devel", "gstreamer-plugins-base-devel"])
+                if self.options.qtwebengine:
+                    pack_names.extend(["libgcrypt-devel", "libgcrypt", "pciutils-devel", "nss-devel", "libXtst-devel", "gperf", "cups-devel", "pulseaudio-libs-devel", "libgudev1-devel", "systemd-devel", "libcap-devel", "alsa-lib-devel", "flex", "bison", "libXrandr-devel", "libXcomposite-devel", "libXcursor-devel", "fontconfig-devel"])
+                if self.options.qtdoc:
+                    pack_names.extend(["llvm-devel"])
+                installer = tools.SystemPackageTool()
+                installer.install(list(map(lambda x: x + arch_suffix, pack_names)))
+            else:
+                self.output.warn("Couldn't install system requirements")
 
     def source(self):
         url = "http://download.qt.io/official_releases/qt/{0}/{1}/single/qt-everywhere-src-{1}"\
