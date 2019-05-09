@@ -6,7 +6,7 @@ from distutils.spawn import find_executable
 import os
 import shutil
 import configparser
-from conans.client.profile_loader import _load_profile
+
 
 class QtConan(ConanFile):
 
@@ -56,6 +56,7 @@ class QtConan(ConanFile):
     build_policy = "missing"
 
     def build_requirements(self):
+        self._build_system_requirements()
         if self.settings.os == 'Android':
             self.build_requires("android-ndk/r17b@tereius/stable")
             self.build_requires("android-sdk/26.1.1@tereius/stable")
@@ -92,8 +93,9 @@ class QtConan(ConanFile):
             if getattr(self.options, module):
                 enablemodule(self, module)
 
-    def system_requirements(self):
+    def _build_system_requirements(self):
         if self.settings.os == "Linux" and tools.os_info.is_linux:
+            installer = tools.SystemPackageTool()
             if tools.os_info.with_apt:
                 pack_names = []
                 arch_suffix = ''
@@ -111,8 +113,9 @@ class QtConan(ConanFile):
                     pack_names.extend(["libssl-dev", "libxcursor-dev", "libxcomposite-dev", "libxdamage-dev", "libxrandr-dev", "libdbus-1-dev", "libfontconfig1-dev", "libcap-dev", "libxtst-dev", "libpulse-dev", "libudev-dev", "libpci-dev", "libnss3-dev", "libasound2-dev", "libxss-dev", "libegl1-mesa-dev", "gperf", "bison"])
                 if self.options.qtdoc:
                     pack_names.extend(["libclang-6.0-dev", "llvm-6.0"])        
-                installer = tools.SystemPackageTool()
-                installer.install(list(map(lambda x: x + arch_suffix, pack_names)))
+                for package in pack_names:
+                    self.output.warn("Package " + package + arch_suffix)
+                    installer.install(package + arch_suffix)
             elif tools.os_info.with_yum:
                 pack_names = []
                 arch_suffix = ''
@@ -130,8 +133,8 @@ class QtConan(ConanFile):
                     pack_names.extend(["libgcrypt-devel", "libgcrypt", "pciutils-devel", "nss-devel", "libXtst-devel", "gperf", "cups-devel", "pulseaudio-libs-devel", "libgudev1-devel", "systemd-devel", "libcap-devel", "alsa-lib-devel", "flex", "bison", "libXrandr-devel", "libXcomposite-devel", "libXcursor-devel", "fontconfig-devel"])
                 if self.options.qtdoc:
                     pack_names.extend(["llvm-devel"])
-                installer = tools.SystemPackageTool()
-                installer.install(list(map(lambda x: x + arch_suffix, pack_names)))
+                for package in pack_names:
+                    installer.install(package + arch_suffix)
             else:
                 self.output.warn("Couldn't install system requirements")
 
@@ -214,7 +217,7 @@ class QtConan(ConanFile):
         elif self.settings.os == "Android":
             self._build_android(args)
         elif self.settings.os == "iOS":
-            self._build_ios(args);
+            self._build_ios(args)
         else:
             self._build_unix(args)
 
