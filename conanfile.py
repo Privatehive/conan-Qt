@@ -114,7 +114,6 @@ class QtConan(ConanFile):
                 if self.options.qtdoc:
                     pack_names.extend(["libclang-6.0-dev", "llvm-6.0"])        
                 for package in pack_names:
-                    self.output.warn("Package " + package + arch_suffix)
                     installer.install(package + arch_suffix)
             elif tools.os_info.with_yum:
                 pack_names = []
