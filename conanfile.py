@@ -156,7 +156,7 @@ class QtConan(ConanFile):
             return paths
 
     def build(self):
-        args = ["-opensource", "-confirm-license", "-silent", "-nomake examples", "-nomake tests",
+        args = ["-v", "-opensource", "-confirm-license", "-silent", "-nomake examples", "-nomake tests",
                 "-prefix %s" % self._toUnixPath(self.package_folder)]
         if not self.options.GUI:
             args.append("-no-gui")
