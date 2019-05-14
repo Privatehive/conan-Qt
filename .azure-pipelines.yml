@@ -122,6 +122,7 @@ jobs:
     
 - job: Upload
   dependsOn:
+  - Android
   - Linux
   - Windows
   - Macos
