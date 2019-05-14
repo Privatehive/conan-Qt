@@ -147,7 +147,7 @@ class QtConan(ConanFile):
             tools.replace_in_file("qt5/qtbase/src/plugins/platforms/ios/qioseventdispatcher.mm", "namespace", "Q_LOGGING_CATEGORY(lcEventDispatcher, \"qt.eventdispatcher\"); \n namespace")
 
     def _toUnixPath(self, paths):
-        if self.settings.os == "Android" and self.settings.os_build == "Windows":
+        if self.settings.os == "Android" and tools.os_info.is_windows:
             if(isinstance(paths, list)):
                 return list(map(lambda x: tools.unix_path(x), paths))
             else:
@@ -287,14 +287,17 @@ class QtConan(ConanFile):
 
     def _build_android(self, args):
         # end workaround
-        args += ["-platform win32-g++", "--disable-rpath", "-skip qttranslations", "-skip qtserialport"]
+        args += ["--disable-rpath", "-skip qttranslations", "-skip qtserialport"]
+        if tools.os_info.is_windows:
+            args += ["-platform win32-g++"]
+        
         if self.settings.compiler == 'gcc':
             args += ["-xplatform android-g++"]
         else:
             args += ["-xplatform android-clang"]
         args += ["-android-ndk-platform android-%s" % (str(self.settings.os.api_level))]
-        args += ["-android-ndk " + tools.unix_path(self.deps_env_info['android-ndk'].NDK_ROOT)]
-        args += ["-android-sdk " + tools.unix_path(self.deps_env_info['android-sdk'].SDK_ROOT)]
+        args += ["-android-ndk " + self._toUnixPath(self.deps_env_info['android-ndk'].NDK_ROOT)]
+        args += ["-android-sdk " + self._toUnixPath(self.deps_env_info['android-sdk'].SDK_ROOT)]
         args += ["-android-ndk-host %s-%s" % (str(self.settings.os_build).lower(), str(self.settings.arch_build))]
         args += ["-android-toolchain-version " + self.deps_env_info['android-ndk'].TOOLCHAIN_VERSION]
         #args += ["-sysroot " + tools.unix_path(self.deps_env_info['android-ndk'].SYSROOT)]
@@ -314,13 +317,13 @@ class QtConan(ConanFile):
         self.output.info("Using '%d' threads" % tools.cpu_count())
         with tools.environment_append({
                 # The env. vars set by conan android-ndk. Configure doesn't read them (on windows they contain backslashes).
-                "NDK_ROOT": tools.unix_path(tools.get_env("NDK_ROOT")),
-                "ANDROID_NDK_ROOT": tools.unix_path(tools.get_env("NDK_ROOT")),
-                "SYSROOT": tools.unix_path(tools.get_env("SYSROOT"))
+                "NDK_ROOT": self._toUnixPath(tools.get_env("NDK_ROOT")),
+                "ANDROID_NDK_ROOT": self._toUnixPath(tools.get_env("NDK_ROOT")),
+                "SYSROOT": self._toUnixPath(tools.get_env("SYSROOT"))
             }):
-            self.run(tools.unix_path("%s/qt5/configure " % self.source_folder) + " ".join(args), win_bash=True, msys_mingw=True)
-            self.run("make", win_bash=True)
-            self.run("make install", win_bash=True)
+            self.run(self._toUnixPath("%s/qt5/configure " % self.source_folder) + " ".join(args), win_bash=tools.os_info.is_windows, msys_mingw=tools.os_info.is_windows)
+            self.run("make", win_bash=tools.os_info.is_windows)
+            self.run("make install", win_bash=tools.os_info.is_windows)
 
     def package(self):
         self.copy("bin/qt.conf", src="qtbase")
