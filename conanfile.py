@@ -6,7 +6,7 @@ from distutils.spawn import find_executable
 import os
 import shutil
 import configparser
-
+from conans.model.version import Version
 
 class QtConan(ConanFile):
 
@@ -37,7 +37,7 @@ class QtConan(ConanFile):
     homepage = "https://www.qt.io/"
     license = "http://doc.qt.io/qt-5/lgpl.html"
     exports = ["LICENSE.md", "qtmodules.conf"]
-    exports_sources = ["CMakeLists.txt"]
+    exports_sources = ["CMakeLists.txt", "fix_compile_issue_gcc9.diff"]
     settings = "os", "arch", "compiler", "build_type", "os_build", "arch_build"
 
     options = dict({
@@ -145,6 +145,12 @@ class QtConan(ConanFile):
         if self.settings.os == "iOS":
             #tools.replace_in_file("qt5/qtdeclarative/tools/tools.pro", "qmltime", " ")
             tools.replace_in_file("qt5/qtbase/src/plugins/platforms/ios/qioseventdispatcher.mm", "namespace", "Q_LOGGING_CATEGORY(lcEventDispatcher, \"qt.eventdispatcher\"); \n namespace")
+        
+        # fix error with mersenne_twisters
+        # https://codereview.qt-project.org/c/qt/qtbase/+/245425
+        # should not needed in Qt >= 5.12.1
+        if self.settings.compiler == "gcc" and Version(self.settings.compiler.version.value) >= "9":
+            tools.patch(patch_file="fix_compile_issue_gcc9.diff", base_path="qt5/qtbase/")
 
     def _toUnixPath(self, paths):
         if self.settings.os == "Android" and tools.os_info.is_windows:
