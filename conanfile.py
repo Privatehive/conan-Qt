@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-from conans import ConanFile, tools
+from conans import ConanFile, tools, AutoToolsBuildEnvironment
 from distutils.spawn import find_executable
 import os
 import shutil
@@ -145,7 +145,7 @@ class QtConan(ConanFile):
         if self.settings.os == "iOS":
             #tools.replace_in_file("qt5/qtdeclarative/tools/tools.pro", "qmltime", " ")
             tools.replace_in_file("qt5/qtbase/src/plugins/platforms/ios/qioseventdispatcher.mm", "namespace", "Q_LOGGING_CATEGORY(lcEventDispatcher, \"qt.eventdispatcher\"); \n namespace")
-
+            
     def _toUnixPath(self, paths):
         if self.settings.os == "Android" and tools.os_info.is_windows:
             if(isinstance(paths, list)):
@@ -156,7 +156,7 @@ class QtConan(ConanFile):
             return paths
 
     def build(self):
-        args = ["-v", "-opensource", "-confirm-license", "-silent", "-nomake examples", "-nomake tests",
+        args = ["-v", "-opensource", "-confirm-license", "-nomake examples", "-nomake tests",
                 "-prefix %s" % self._toUnixPath(self.package_folder)]
         if not self.options.GUI:
             args.append("-no-gui")
@@ -200,6 +200,8 @@ class QtConan(ConanFile):
             libs = self._toUnixPath(self.deps_cpp_info["OpenSSL"].libs)
             lib_paths = self._toUnixPath(self.deps_cpp_info["OpenSSL"].lib_paths)
             os.environ["OPENSSL_LIBS"] = " ".join(["-L"+i for i in lib_paths] + ["-l"+i for i in libs])
+            os.environ["OPENSSL_LIBS_DEBUG"] = " ".join(["-L"+i for i in lib_paths] + ["-l"+i for i in libs])
+            os.environ["LD_RUN_PATH"] = " ".join([i+":" for i in lib_paths]) # Needed for secondary (indirect) dependency resolving of gnu ld
 
         if self.options.config:
             args.append(str(self.options.config))
@@ -266,11 +268,11 @@ class QtConan(ConanFile):
             if self.settings.arch == "x86":
                 args += ["-xplatform macx-clang-32"]
 
-        with tools.environment_append({"MAKEFLAGS":"-j %d" % tools.cpu_count()}):
-            self.output.info("Using '%d' threads" % tools.cpu_count())
-            self.run("%s/qt5/configure %s" % (self.source_folder, " ".join(args)))
-            self.run("make")
-            self.run("make install")
+        env_build = AutoToolsBuildEnvironment(self)
+        self.run("printenv")
+        self.run("%s/qt5/configure %s" % (self.source_folder, " ".join(args)))
+        env_build.make()
+        env_build.install()
 
     def _build_ios(self, args):
         # end workaround
