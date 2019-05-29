@@ -53,7 +53,6 @@ class QtConan(ConanFile):
     no_copy_source = True
     default_options = ("shared=True", "fPIC=True", "opengl=desktop", "openssl=False", "GUI=True", "widgets=True", "config=None") + tuple(module + "=False" for module in submodules)
     short_paths = True
-    build_policy = "missing"
 
     def build_requirements(self):
         self._build_system_requirements()
@@ -273,7 +272,6 @@ class QtConan(ConanFile):
                 args += ["-xplatform macx-clang-32"]
 
         env_build = AutoToolsBuildEnvironment(self)
-        self.run("printenv")
         self.run("%s/qt5/configure %s" % (self.source_folder, " ".join(args)))
         env_build.make()
         env_build.install()
