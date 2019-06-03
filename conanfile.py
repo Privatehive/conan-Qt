@@ -141,6 +141,9 @@ class QtConan(ConanFile):
             tools.get("%s.tar.xz" % url)
             #self.run("wget -qO- %s.tar.xz | tar -xJ " % url)
         shutil.move("qt-everywhere-src-%s" % self.version, "qt5")
+
+
+
         #tools.replace_in_file("qt5/qtdeclarative/tools/tools.pro", "qmltime", " ")
         tools.replace_in_file("qt5/qtbase/src/plugins/platforms/ios/qioseventdispatcher.mm", "namespace", "Q_LOGGING_CATEGORY(lcEventDispatcher, \"qt.eventdispatcher\"); \n namespace")
         
@@ -148,6 +151,12 @@ class QtConan(ConanFile):
         # https://codereview.qt-project.org/c/qt/qtbase/+/245425
         # should not needed in Qt >= 5.12.1
         tools.patch(patch_file="fix_compile_issue_gcc9.diff", base_path="qt5/qtbase/")
+
+        if self.settings.os == "iOS":
+            #tools.replace_in_file("qt5/qtdeclarative/tools/tools.pro", "qmltime", " ")
+            tools.replace_in_file("qt5/qtbase/src/plugins/platforms/ios/qioseventdispatcher.mm", "namespace", "Q_LOGGING_CATEGORY(lcEventDispatcher, \"qt.eventdispatcher\"); \n namespace")
+            if self.settings.build_type == "Debug":
+                tools.replace_in_file("qt5/qtdeclarative/tools/qmltime/qmltime.pro", "QT += quick-private", "QT += quick-private\nCONFIG -= bitcode")
 
     def _toUnixPath(self, paths):
         if self.settings.os == "Android" and tools.os_info.is_windows:
@@ -282,6 +291,21 @@ class QtConan(ConanFile):
         args += ["-xplatform macx-ios-clang"]
         args += ["-sdk iphoneos"]
         #args += ["-sysroot " + tools.unix_path(self.deps_env_info['android-ndk'].SYSROOT)]
+
+        with tools.environment_append({"MAKEFLAGS":"-j %d" % tools.cpu_count()}):
+            self.output.info("Using '%d' threads" % tools.cpu_count())
+            self.run(("%s/qt5/configure " % self.source_folder) + " ".join(args))
+            self.run("make")
+            self.run("make install")
+
+    def _build_ios(self, args):
+        # end workaround
+        args += ["--disable-rpath", "-skip qttranslations", "-skip qtserialport"]
+        args += ["-xplatform macx-ios-clang"]
+        args += ["-sdk iphoneos"]
+        #args += ["-sysroot " + tools.unix_path(self.deps_env_info['android-ndk'].SYSROOT)]
+        if self.settings.build_type == "Debug":
+            args += ["-no-framework"]
 
         with tools.environment_append({"MAKEFLAGS":"-j %d" % tools.cpu_count()}):
             self.output.info("Using '%d' threads" % tools.cpu_count())
