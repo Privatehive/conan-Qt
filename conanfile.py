@@ -135,6 +135,8 @@ class QtConan(ConanFile):
         if self.settings.os == "iOS":
             #tools.replace_in_file("qt5/qtdeclarative/tools/tools.pro", "qmltime", " ")
             tools.replace_in_file("qt5/qtbase/src/plugins/platforms/ios/qioseventdispatcher.mm", "namespace", "Q_LOGGING_CATEGORY(lcEventDispatcher, \"qt.eventdispatcher\"); \n namespace")
+            if self.settings.build_type == "Debug":
+                tools.replace_in_file("qt5/qtdeclarative/tools/qmltime/qmltime.pro", "QT += quick-private", "QT += quick-private\nCONFIG -= bitcode")
 
     def _toUnixPath(self, paths):
         if self.settings.os == "Android" and self.settings.os_build == "Windows":
@@ -267,6 +269,8 @@ class QtConan(ConanFile):
         args += ["-xplatform macx-ios-clang"]
         args += ["-sdk iphoneos"]
         #args += ["-sysroot " + tools.unix_path(self.deps_env_info['android-ndk'].SYSROOT)]
+        if self.settings.build_type == "Debug":
+            args += ["-no-framework"]
 
         with tools.environment_append({"MAKEFLAGS":"-j %d" % tools.cpu_count()}):
             self.output.info("Using '%d' threads" % tools.cpu_count())
