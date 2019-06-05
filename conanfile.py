@@ -205,6 +205,7 @@ class QtConan(ConanFile):
             os.environ["OPENSSL_LIBS"] = " ".join(["-L"+i for i in lib_paths] + ["-l"+i for i in libs])
             os.environ["OPENSSL_LIBS_DEBUG"] = " ".join(["-L"+i for i in lib_paths] + ["-l"+i for i in libs])
             os.environ["LD_RUN_PATH"] = " ".join([i+":" for i in lib_paths]) # Needed for secondary (indirect) dependency resolving of gnu ld
+            os.environ["LD_LIBRARY_PATH"] = " ".join([i+":" for i in lib_paths]) # Needed for secondary (indirect) dependency resolving of gnu ld
 
         if self.options.config:
             args.append(str(self.options.config))
