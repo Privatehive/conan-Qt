@@ -142,21 +142,14 @@ class QtConan(ConanFile):
             #self.run("wget -qO- %s.tar.xz | tar -xJ " % url)
         shutil.move("qt-everywhere-src-%s" % self.version, "qt5")
 
-
-
-        #tools.replace_in_file("qt5/qtdeclarative/tools/tools.pro", "qmltime", " ")
+        #ios patches
         tools.replace_in_file("qt5/qtbase/src/plugins/platforms/ios/qioseventdispatcher.mm", "namespace", "Q_LOGGING_CATEGORY(lcEventDispatcher, \"qt.eventdispatcher\"); \n namespace")
+        tools.replace_in_file("qt5/qtdeclarative/tools/qmltime/qmltime.pro", "QT += quick-private", "QT += quick-private\nios{\nCONFIG -= bitcode\n}")
         
         # fix error with mersenne_twisters
         # https://codereview.qt-project.org/c/qt/qtbase/+/245425
         # should not needed in Qt >= 5.12.1
         tools.patch(patch_file="fix_compile_issue_gcc9.diff", base_path="qt5/qtbase/")
-
-        if self.settings.os == "iOS":
-            #tools.replace_in_file("qt5/qtdeclarative/tools/tools.pro", "qmltime", " ")
-            tools.replace_in_file("qt5/qtbase/src/plugins/platforms/ios/qioseventdispatcher.mm", "namespace", "Q_LOGGING_CATEGORY(lcEventDispatcher, \"qt.eventdispatcher\"); \n namespace")
-            if self.settings.build_type == "Debug":
-                tools.replace_in_file("qt5/qtdeclarative/tools/qmltime/qmltime.pro", "QT += quick-private", "QT += quick-private\nCONFIG -= bitcode")
 
     def _toUnixPath(self, paths):
         if self.settings.os == "Android" and tools.os_info.is_windows:
