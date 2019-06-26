@@ -336,6 +336,10 @@ class QtConan(ConanFile):
 
     def package(self):
         self.copy("bin/qt.conf", src="qtbase")
+        if self.settings.os == "Android" and tools.os_info.is_windows:
+            self.copy("bin/libgcc_s_seh-1.dll", src=os.path.join(self.deps_env_info['msys2'].MSYS_ROOT, "mingw64", "bin"))
+            self.copy("bin/libstdc++-6.dll", src=os.path.join(self.deps_env_info['msys2'].MSYS_ROOT, "mingw64", "bin"))
+            self.copy("bin/libwinpthread-1.dll", src=os.path.join(self.deps_env_info['msys2'].MSYS_ROOT, "mingw64", "bin"))
 
     def package_info(self):
         self.env_info.path.append(os.path.join(self.package_folder, "bin"))
