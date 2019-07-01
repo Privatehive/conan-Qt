@@ -103,7 +103,7 @@ class QtConan(ConanFile):
                 elif self.settings.arch == "x86_64":
                     arch_suffix = ':amd64'
                 if self.options.GUI:
-                    pack_names.extend(["libxcb1-dev", "libx11-dev", "libfontconfig1-dev", "libfreetype6-dev", "libxext-dev", "libxfixes-dev", "libxi-dev", "libxrender-dev", "libx11-xcb-dev", "libxcb-glx0-dev"])
+                    pack_names.extend(["libxcb1-dev", "libx11-dev", "libfontconfig1-dev", "libfreetype6-dev", "libxext-dev", "libxfixes-dev", "libxi-dev", "libxrender-dev", "libx11-xcb-dev", "libxcb-glx0-dev", "libxkbcommon-dev"])
                     if self.options.opengl == "desktop":
                         pack_names.append("libgl1-mesa-dev")
                 if self.options.qtmultimedia:
@@ -120,7 +120,7 @@ class QtConan(ConanFile):
                 elif self.settings.arch == "x86_64":
                     arch_suffix = '.x86_64'
                 if self.options.GUI:
-                    pack_names.extend(["libxcb-devel", "libX11-devel", "fontconfig-devel", "freetype-devel", "libXext-devel", "libXfixes-devel", "libXi-devel", "libXrender-devel"])
+                    pack_names.extend(["libxcb-devel", "libX11-devel", "fontconfig-devel", "freetype-devel", "libXext-devel", "libXfixes-devel", "libXi-devel", "libXrender-devel", "libxkbcommon-devel"])
                     if self.options.opengl == "desktop":
                         pack_names.append("mesa-libGL-devel")
                 if self.options.qtmultimedia:
