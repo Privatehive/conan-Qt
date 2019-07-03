@@ -31,7 +31,7 @@ class QtConan(ConanFile):
     submodules = getsubmodules()
 
     name = "Qt"
-    version = "5.12.3"
+    version = "5.12.4"
     description = "Conan.io package for Qt library."
     url = "https://github.com/Tereius/conan-Qt"
     homepage = "https://www.qt.io/"
