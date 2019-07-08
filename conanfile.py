@@ -145,7 +145,8 @@ class QtConan(ConanFile):
         #ios patches
         tools.replace_in_file("qt5/qtbase/src/plugins/platforms/ios/qioseventdispatcher.mm", "namespace", "Q_LOGGING_CATEGORY(lcEventDispatcher, \"qt.eventdispatcher\"); \n namespace")
         tools.replace_in_file("qt5/qtdeclarative/tools/qmltime/qmltime.pro", "QT += quick-private", "QT += quick-private\nios{\nCONFIG -= bitcode\n}")
-        
+        tools.replace_in_file("qt5/qtbase/src/platformsupport/clipboard/clipboard.pro", "macos: LIBS_PRIVATE += -framework AppKit", "macos: LIBS_PRIVATE += -framework AppKit\nios {\nLIBS += -framework MobileCoreServices\n}")
+
         # fix error with mersenne_twisters
         # https://codereview.qt-project.org/c/qt/qtbase/+/245425
         # should not needed in Qt >= 5.12.1
