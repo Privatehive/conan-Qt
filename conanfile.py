@@ -64,6 +64,8 @@ class QtConan(ConanFile):
                 self.build_requires("strawberryperl/5.26.0@conan/stable")
                 self.build_requires("msys2/20161025@tereius/stable")
                 self.build_requires_options['msys2'].provideMinGW = True
+        if self.settings.os == 'Emscripten':
+            self.build_requires("emsdk_installer/1.38.29@bincrafters/stable")
 
     def configure(self):
         if self.options.openssl:
@@ -79,6 +81,10 @@ class QtConan(ConanFile):
             if self.options.opengl != "no":
                 self.options.opengl = "es2"
         if self.settings.os == "iOS":
+            if self.options.opengl != "no":
+                self.options.opengl = "es2"
+        if self.settings.os == 'Emscripten':
+            self.options.shared = False
             if self.options.opengl != "no":
                 self.options.opengl = "es2"
 
@@ -145,6 +151,8 @@ class QtConan(ConanFile):
         #ios patches
         tools.replace_in_file("qt5/qtbase/src/plugins/platforms/ios/qioseventdispatcher.mm", "namespace", "Q_LOGGING_CATEGORY(lcEventDispatcher, \"qt.eventdispatcher\"); \n namespace")
         tools.replace_in_file("qt5/qtdeclarative/tools/qmltime/qmltime.pro", "QT += quick-private", "QT += quick-private\nios{\nCONFIG -= bitcode\n}")
+        
+        tools.replace_in_file("qt5/qtbase/src/corelib/tools/qsimd_p.h", "#    include <x86intrin.h>", "# if !defined(__EMSCRIPTEN__)\n#  include <x86intrin.h>\n# endif")
         
         # fix error with mersenne_twisters
         # https://codereview.qt-project.org/c/qt/qtbase/+/245425
@@ -221,6 +229,8 @@ class QtConan(ConanFile):
             self._build_android(args)
         elif self.settings.os == "iOS":
             self._build_ios(args)
+        elif self.settings.os == "Emscripten":
+            self._build_wasm(args)
         else:
             self._build_unix(args)
 
@@ -333,6 +343,14 @@ class QtConan(ConanFile):
             self.run(self._toUnixPath("%s/qt5/configure " % self.source_folder) + " ".join(args), win_bash=tools.os_info.is_windows, msys_mingw=tools.os_info.is_windows)
             self.run("make", win_bash=tools.os_info.is_windows)
             self.run("make install", win_bash=tools.os_info.is_windows)
+
+    def _build_wasm(self, args):
+        args += ["--disable-rpath", "-skip qttranslations", "-skip qtserialport"]
+        args += ["-xplatform wasm-emscripten"]
+        env_build = AutoToolsBuildEnvironment(self)
+        self.run("%s/qt5/configure %s" % (self.source_folder, " ".join(args)))
+        env_build.make()
+        env_build.install()
 
     def package(self):
         self.copy("bin/qt.conf", src="qtbase")
