@@ -71,7 +71,10 @@ class QtConan(ConanFile):
         if self.options.openssl:
             self.requires("OpenSSL/1.1.1b@tereius/stable")
             self.options["OpenSSL"].no_zlib = True
-            self.options["OpenSSL"].shared = True
+            if self.settings.os == 'Emscripten':
+                self.options["OpenSSL"].shared = False
+            else:
+                self.options["OpenSSL"].shared = True
         if self.options.widgets == True:
             self.options.GUI = True
         if not self.options.GUI:
@@ -206,10 +209,7 @@ class QtConan(ConanFile):
         if not self.options.openssl:
             args += ["-no-openssl"]
         else:
-            if self.options["OpenSSL"].shared:
-                args += ["-openssl-linked"]
-            else:
-                args += ["-openssl"]
+            args += ["-openssl-linked"]
             args += ["-I %s" % i for i in self._toUnixPath(self.deps_cpp_info["OpenSSL"].include_paths)]
             libs = self._toUnixPath(self.deps_cpp_info["OpenSSL"].libs)
             lib_paths = self._toUnixPath(self.deps_cpp_info["OpenSSL"].lib_paths)
