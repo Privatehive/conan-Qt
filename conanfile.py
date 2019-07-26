@@ -37,7 +37,7 @@ class QtConan(ConanFile):
     homepage = "https://www.qt.io/"
     license = "http://doc.qt.io/qt-5/lgpl.html"
     exports = ["LICENSE.md", "qtmodules.conf"]
-    exports_sources = ["CMakeLists.txt", "fix_compile_issue_gcc9.diff"]
+    exports_sources = ["CMakeLists.txt", "fix_qqmlthread_assertion_dbg.diff"]
     settings = "os", "arch", "compiler", "build_type", "os_build", "arch_build"
 
     options = dict({
@@ -65,7 +65,7 @@ class QtConan(ConanFile):
                 self.build_requires("msys2/20161025@tereius/stable")
                 self.build_requires_options['msys2'].provideMinGW = True
         if self.settings.os == 'Emscripten':
-            self.build_requires("emsdk_installer/1.38.29@bincrafters/stable")
+            self.build_requires("emsdk_installer/1.38.22@bincrafters/stable")
 
     def configure(self):
         if self.options.openssl:
@@ -161,7 +161,7 @@ class QtConan(ConanFile):
         # fix error with mersenne_twisters
         # https://codereview.qt-project.org/c/qt/qtbase/+/245425
         # should not needed in Qt >= 5.12.1
-        tools.patch(patch_file="fix_compile_issue_gcc9.diff", base_path="qt5/qtbase/")
+        tools.patch(patch_file="fix_qqmlthread_assertion_dbg.diff", base_path="qt5/qtdeclarative/")
 
     def _toUnixPath(self, paths):
         if self.settings.os == "Android" and tools.os_info.is_windows:
