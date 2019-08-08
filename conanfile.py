@@ -37,7 +37,7 @@ class QtConan(ConanFile):
     homepage = "https://www.qt.io/"
     license = "http://doc.qt.io/qt-5/lgpl.html"
     exports = ["LICENSE.md", "qtmodules.conf"]
-    exports_sources = ["CMakeLists.txt", "fix_qqmlthread_assertion_dbg.diff"]
+    exports_sources = ["CMakeLists.txt", "fix_qqmlthread_assertion_dbg.diff", "fix_ios_appstore.diff", "dylibToFramework.sh", "AwesomeQtMetadataParser"]
     settings = "os", "arch", "compiler", "build_type", "os_build", "arch_build"
 
     options = dict({
@@ -151,12 +151,17 @@ class QtConan(ConanFile):
             #self.run("wget -qO- %s.tar.xz | tar -xJ " % url)
         shutil.move("qt-everywhere-src-%s" % self.version, "qt5")
 
-        #ios patches
-        tools.replace_in_file("qt5/qtbase/src/plugins/platforms/ios/qioseventdispatcher.mm", "namespace", "Q_LOGGING_CATEGORY(lcEventDispatcher, \"qt.eventdispatcher\"); \n namespace")
-        tools.replace_in_file("qt5/qtdeclarative/tools/qmltime/qmltime.pro", "QT += quick-private", "QT += quick-private\nios{\nCONFIG -= bitcode\n}")
-        tools.replace_in_file("qt5/qtbase/src/platformsupport/clipboard/clipboard.pro", "macos: LIBS_PRIVATE += -framework AppKit", "macos: LIBS_PRIVATE += -framework AppKit\nios {\nLIBS += -framework MobileCoreServices\n}")
+        # patches
+        #tools.replace_in_file("qt5/qtbase/src/plugins/platforms/ios/qioseventdispatcher.mm", "namespace", "Q_LOGGING_CATEGORY(lcEventDispatcher, \"qt.eventdispatcher\"); \n namespace")
+        #tools.replace_in_file("qt5/qtdeclarative/tools/qmltime/qmltime.pro", "QT += quick-private", "QT += quick-private\nios{\nCONFIG -= bitcode\n}")
+        #tools.replace_in_file("qt5/qtbase/src/platformsupport/clipboard/clipboard.pro", "macos: LIBS_PRIVATE += -framework AppKit", "macos: LIBS_PRIVATE += -framework AppKit\nios {\nLIBS += -framework MobileCoreServices\n}")
 
-        tools.replace_in_file("qt5/qtbase/src/corelib/tools/qsimd_p.h", "#    include <x86intrin.h>", "# if !defined(__EMSCRIPTEN__)\n#  include <x86intrin.h>\n# endif")
+        #tools.replace_in_file("qt5/qtbase/src/corelib/tools/qsimd_p.h", "#    include <x86intrin.h>", "# if !defined(__EMSCRIPTEN__)\n#  include <x86intrin.h>\n# endif")
+
+        if self.settings.os == "iOS":
+            tools.patch(patch_file="fix_ios_appstore.diff", base_path="qt5")
+            # Do not use subdirectories in plugin folder since this is not App Store compatible
+            #tools.replace_in_file("qt5/qtbase/src/corelib/plugin/qfactoryloader.cpp", "QString path = pluginDir + d->suffix;", "QString path = pluginDir;")
 
         # fix error with mersenne_twisters
         # https://codereview.qt-project.org/c/qt/qtbase/+/245425
@@ -295,6 +300,7 @@ class QtConan(ConanFile):
         args += ["--disable-rpath", "-skip qttranslations", "-skip qtserialport"]
         args += ["-xplatform macx-ios-clang"]
         args += ["-sdk iphoneos"]
+        args += ["QMAKE_IOS_DEPLOYMENT_TARGET=\"11.0\""]
         #args += ["-sysroot " + tools.unix_path(self.deps_env_info['android-ndk'].SYSROOT)]
         if self.settings.build_type == "Debug":
             args += ["-no-framework"]
@@ -359,6 +365,8 @@ class QtConan(ConanFile):
             self.copy("libgcc_s_seh-1.dll", dst="bin", src=os.path.join(self.deps_env_info['msys2'].MSYS_ROOT, "mingw64", "bin"))
             self.copy("libstdc++-6.dll", dst="bin", src=os.path.join(self.deps_env_info['msys2'].MSYS_ROOT, "mingw64", "bin"))
             self.copy("libwinpthread-1.dll", dst="bin", src=os.path.join(self.deps_env_info['msys2'].MSYS_ROOT, "mingw64", "bin"))
+        if self.settings.os == "iOS" and self.settings.build_type == "Release":
+            self.run("%s/dylibToFramework.sh %s %s" % (self.source_folder, self.package_folder, os.path.join(self.source_folder, "AwesomeQtMetadataParser")))
 
     def package_info(self):
         self.env_info.path.append(os.path.join(self.package_folder, "bin"))
