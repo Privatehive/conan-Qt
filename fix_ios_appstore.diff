@@ -1,3 +1,16 @@
+diff --git a/qtmultimedia/src/plugins/avfoundation/camera/avfcamerasession.mm b/qtmultimedia/src/plugins/avfoundation/camera/avfcamerasession.mm
+index 8e3436d..0b7c0e9 100644
+--- a/qtmultimedia/src/plugins/avfoundation/camera/avfcamerasession.mm
++++ b/qtmultimedia/src/plugins/avfoundation/camera/avfcamerasession.mm
+@@ -234,7 +234,7 @@ void AVFCameraSession::updateCameraDevices()
+             break;
+         case AVCaptureDevicePositionFront:
+             info.position = QCamera::FrontFace;
+-            info.orientation = 90;
++            info.orientation = 270;
+             break;
+         default:
+             info.position = QCamera::UnspecifiedPosition;
 diff --git a/qtbase/src/corelib/plugin/qfactoryloader.cpp b/qtbase/src/corelib/plugin/qfactoryloader.cpp
 index 35c64180..af2eb982 100644
 --- a/qtbase/src/corelib/plugin/qfactoryloader.cpp
@@ -5,13 +18,13 @@ index 35c64180..af2eb982 100644
 @@ -193,7 +193,11 @@ void QFactoryLoader::update()
              continue;
          d->loadedPaths << pluginDir;
- 
+
 +#if defined Q_OS_IOS && defined QT_NO_DEBUG
 +        QString path = pluginDir;
 +#else
          QString path = pluginDir + d->suffix;
 +#endif
- 
+
          if (qt_debug_component())
              qDebug() << "QFactoryLoader::QFactoryLoader() checking directory path" << path << "...";
 @@ -205,7 +209,11 @@ void QFactoryLoader::update()
@@ -24,13 +37,13 @@ index 35c64180..af2eb982 100644
                      QDir::Files);
 +#endif
          QLibraryPrivate *library = 0;
- 
+
          for (int j = 0; j < plugins.count(); ++j) {
 @@ -230,6 +238,18 @@ void QFactoryLoader::update()
                  continue;
              }
  #endif
-+			
++
 +#ifdef Q_OS_IOS
 +			if(fileName.endsWith(".framework")) {
 +				QFileInfo fileInfo(fileName);
@@ -41,7 +54,7 @@ index 35c64180..af2eb982 100644
 +				}
 +			}
 +#endif
-+			
++
              if (qt_debug_component()) {
                  qDebug() << "QFactoryLoader::QFactoryLoader() looking at" << fileName;
              }
@@ -52,7 +65,7 @@ index 29ef697f..514215f3 100644
 @@ -330,6 +330,21 @@ static bool findPatternUnloaded(const QString &library, QLibraryPrivate *lib)
          }
      }
- 
+
 +#if defined(Q_OS_IOS)
 +	if(!ret) {
 +		QFile jsonFile(library + ".json");
@@ -76,7 +89,7 @@ index 9f1321df..30d43100 100644
 --- a/qtbase/src/corelib/tools/qsimd_p.h
 +++ b/qtbase/src/corelib/tools/qsimd_p.h
 @@ -193,7 +193,9 @@
- 
+
  #  if defined(Q_CC_GNU) && !defined(Q_CC_INTEL)
  // GCC 4.4 and Clang 2.8 added a few more intrinsics there
 -#    include <x86intrin.h>
@@ -84,20 +97,20 @@ index 9f1321df..30d43100 100644
 +#  include <x86intrin.h>
 +# endif
  #  endif
- 
+
  #  if defined(Q_CC_MSVC) && (defined(_M_AVX) || defined(__AVX__))
 diff --git a/qtbase/src/platformsupport/clipboard/clipboard.pro b/qtbase/src/platformsupport/clipboard/clipboard.pro
 index 916f6b0c..882288c2 100644
 --- a/qtbase/src/platformsupport/clipboard/clipboard.pro
 +++ b/qtbase/src/platformsupport/clipboard/clipboard.pro
 @@ -11,5 +11,8 @@ SOURCES += qmacmime.mm
- 
+
  LIBS += -framework ImageIO
  macos: LIBS_PRIVATE += -framework AppKit
 +ios {
 +LIBS += -framework MobileCoreServices
 +}
- 
+
  load(qt_module)
 diff --git a/qtbase/src/plugins/platforms/ios/qioseventdispatcher.mm b/qtbase/src/plugins/platforms/ios/qioseventdispatcher.mm
 index 776343c5..c8edc011 100644
@@ -106,9 +119,9 @@ index 776343c5..c8edc011 100644
 @@ -109,7 +109,8 @@ static const long kPageSize = sysconf(_SC_PAGESIZE);
      Note: the diagram does not reflect alignment issues.
  */
- 
+
 -namespace
-+Q_LOGGING_CATEGORY(lcEventDispatcher, "qt.eventdispatcher"); 
++Q_LOGGING_CATEGORY(lcEventDispatcher, "qt.eventdispatcher");
 + namespace
  {
      struct Stack
@@ -134,7 +147,7 @@ index df6a8f15..b58c3beb 100644
 @@ -1854,6 +1854,17 @@ QString QQmlTypeLoader::absoluteFilePath(const QString &path)
      if (absoluteFilePath.length() > 2 && absoluteFilePath.at(0) != QLatin1Char('/') && absoluteFilePath.at(1) != QLatin1Char(':'))
          absoluteFilePath = QFileInfo(absoluteFilePath).absoluteFilePath();
- 
+
 +#if defined(Q_OS_IOS)
 +	if(absoluteFilePath.endsWith(QLatin1String(".framework"))) {
 +		QFileInfo fileInfo(absoluteFilePath);
@@ -145,10 +158,10 @@ index df6a8f15..b58c3beb 100644
 +		}
 +	}
 +#endif
-+	
++
      return absoluteFilePath;
  }
- 
+
 diff --git a/qtdeclarative/tools/qmltime/qmltime.pro b/qtdeclarative/tools/qmltime/qmltime.pro
 index 04a5fd59..6a8b7829 100644
 --- a/qtdeclarative/tools/qmltime/qmltime.pro
@@ -161,5 +174,5 @@ index 04a5fd59..6a8b7829 100644
 +CONFIG -= bitcode
 +}
  macx:CONFIG -= app_bundle
- 
+
  QMAKE_TARGET_DESCRIPTION = QML Time
