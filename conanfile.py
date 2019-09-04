@@ -37,7 +37,7 @@ class QtConan(ConanFile):
     homepage = "https://www.qt.io/"
     license = "http://doc.qt.io/qt-5/lgpl.html"
     exports = ["LICENSE.md", "qtmodules.conf"]
-    exports_sources = ["CMakeLists.txt", "fix_qqmlthread_assertion_dbg.diff", "fix_ios_appstore.diff", "dylibToFramework.sh", "AwesomeQtMetadataParser"]
+    exports_sources = ["CMakeLists.txt", "fix_qqmlthread_assertion_dbg.diff", "fix_ios_appstore.diff", "android.patch", "dylibToFramework.sh", "AwesomeQtMetadataParser"]
     settings = "os", "arch", "compiler", "build_type", "os_build", "arch_build"
 
     options = dict({
@@ -162,6 +162,9 @@ class QtConan(ConanFile):
             tools.patch(patch_file="fix_ios_appstore.diff", base_path="qt5")
             # Do not use subdirectories in plugin folder since this is not App Store compatible
             #tools.replace_in_file("qt5/qtbase/src/corelib/plugin/qfactoryloader.cpp", "QString path = pluginDir + d->suffix;", "QString path = pluginDir;")
+
+        if self.settings.os == "Android":
+            tools.patch(patch_file="android.patch", base_path="qt5")
 
         # fix error with mersenne_twisters
         # https://codereview.qt-project.org/c/qt/qtbase/+/245425
