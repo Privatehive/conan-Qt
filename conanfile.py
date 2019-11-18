@@ -158,10 +158,9 @@ class QtConan(ConanFile):
 
         #tools.replace_in_file("qt5/qtbase/src/corelib/tools/qsimd_p.h", "#    include <x86intrin.h>", "# if !defined(__EMSCRIPTEN__)\n#  include <x86intrin.h>\n# endif")
 
-        if self.settings.os == "iOS":
-            tools.patch(patch_file="fix_ios_appstore.diff", base_path="qt5")
-            # Do not use subdirectories in plugin folder since this is not App Store compatible
-            #tools.replace_in_file("qt5/qtbase/src/corelib/plugin/qfactoryloader.cpp", "QString path = pluginDir + d->suffix;", "QString path = pluginDir;")
+        tools.patch(patch_file="fix_ios_appstore.diff", base_path="qt5")
+        # Do not use subdirectories in plugin folder since this is not App Store compatible
+        #tools.replace_in_file("qt5/qtbase/src/corelib/plugin/qfactoryloader.cpp", "QString path = pluginDir + d->suffix;", "QString path = pluginDir;")
 
         if self.settings.os == "Android":
             tools.patch(patch_file="android.patch", base_path="qt5")

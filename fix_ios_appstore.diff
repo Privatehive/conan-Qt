@@ -2,15 +2,17 @@ diff --git a/qtmultimedia/src/plugins/avfoundation/camera/avfvideoencodersetting
 index bbb16e7..7c78574 100644
 --- a/qtmultimedia/src/plugins/avfoundation/camera/avfvideoencodersettingscontrol.mm
 +++ b/qtmultimedia/src/plugins/avfoundation/camera/avfvideoencodersettingscontrol.mm
-@@ -209,6 +209,12 @@ NSDictionary *AVFVideoEncoderSettingsControl::applySettings(AVCaptureConnection
+@@ -209,6 +209,14 @@
      if (!device)
          return nil;
 
++#ifdef Q_OS_IOS
 +       AVCaptureVideoStabilizationMode stabilizationMode = AVCaptureVideoStabilizationModeStandard;
 +       if ([device.activeFormat isVideoStabilizationModeSupported:stabilizationMode]) {
 +               qWarning() << "Setting video stabilization mode to " << stabilizationMode;
 +               [connection setPreferredVideoStabilizationMode:stabilizationMode];
 +       }
++#endif
 +
      AVFPSRange currentFps = qt_current_framerates(device, connection);
      const bool needFpsChange = m_requestedSettings.frameRate() > 0
