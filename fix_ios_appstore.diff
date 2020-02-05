@@ -1,3 +1,37 @@
+diff --git a/qtmultimedia/src/plugins/avfoundation/camera/avfmediarecordercontrol_ios.mm b/qtmultimedia/src/plugins/avfoundation/camera/avfmediarecordercontrol_ios.mm
+index 0b31bd0..cf9d34b 100644
+--- a/qtmultimedia/src/plugins/avfoundation/camera/avfmediarecordercontrol_ios.mm
++++ b/qtmultimedia/src/plugins/avfoundation/camera/avfmediarecordercontrol_ios.mm
+@@ -259,7 +259,7 @@ void AVFMediaRecorderControlIOS::setState(QMediaRecorder::State state)
+         AVCaptureSession *session = m_service->session()->captureSession();
+         // We stop session now so that no more frames for renderer's queue
+         // generated, will restart in assetWriterStarted.
+-        [session stopRunning];
++        //[session stopRunning];
+
+         applySettings();
+
+diff --git a/qtmultimedia/src/plugins/avfoundation/camera/avfmediaassetwriter.mm b/qtmultimedia/src/plugins/avfoundation/camera/avfmediaassetwriter.mm
+index 5a1257f..dd04828 100644
+--- a/qtmultimedia/src/plugins/avfoundation/camera/avfmediaassetwriter.mm
++++ b/qtmultimedia/src/plugins/avfoundation/camera/avfmediaassetwriter.mm
+@@ -183,7 +183,7 @@ enum WriterState
+
+     m_state.storeRelease(WriterStateActive);
+
+-    [m_assetWriter startWriting];
++    //[m_assetWriter startWriting];
+     AVCaptureSession *session = m_service->session()->captureSession();
+     if (!session.running)
+         [session startRunning];
+@@ -268,6 +268,7 @@ enum WriterState
+     m_durationInMs.storeRelease(0);
+     m_startTime = CMSampleBufferGetPresentationTimeStamp(sampleBuffer);
+     m_lastTimeStamp = m_startTime;
++    [m_assetWriter startWriting];
+     [m_assetWriter startSessionAtSourceTime:m_startTime];
+     m_setStartTime = false;
+ }
 diff --git a/qtmultimedia/src/plugins/avfoundation/camera/avfvideoencodersettingscontrol.mm b/qtmultimedia/src/plugins/avfoundation/camera/avfvideoencodersettingscontrol.mm
 index bbb16e7..7c78574 100644
 --- a/qtmultimedia/src/plugins/avfoundation/camera/avfvideoencodersettingscontrol.mm
