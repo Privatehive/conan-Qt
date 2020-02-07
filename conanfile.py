@@ -299,7 +299,7 @@ class QtConan(ConanFile):
 
     def _build_ios(self, args):
         # end workaround
-        args += ["--disable-rpath", "-skip qttranslations", "-skip qtserialport"]
+        args += ["--disable-rpath", "-skip qtserialport"]
         args += ["-xplatform macx-ios-clang"]
         args += ["-sdk iphoneos"]
         args += ["QMAKE_IOS_DEPLOYMENT_TARGET=\"11.0\""]
