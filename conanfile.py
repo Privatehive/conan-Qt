@@ -315,7 +315,7 @@ class QtConan(ConanFile):
 
     def _build_android(self, args):
         # end workaround
-        args += ["--disable-rpath", "-skip qttranslations", "-skip qtserialport"]
+        args += ["--disable-rpath", "-skip qtserialport"]
         if tools.os_info.is_windows:
             args += ["-platform win32-g++"]
         
@@ -347,7 +347,8 @@ class QtConan(ConanFile):
                 # The env. vars set by conan android-ndk. Configure doesn't read them (on windows they contain backslashes).
                 "NDK_ROOT": self._toUnixPath(tools.get_env("NDK_ROOT")),
                 "ANDROID_NDK_ROOT": self._toUnixPath(tools.get_env("NDK_ROOT")),
-                "SYSROOT": self._toUnixPath(tools.get_env("SYSROOT"))
+                "SYSROOT": self._toUnixPath(tools.get_env("SYSROOT")),
+                "MAKEFLAGS":"-j %d" % tools.cpu_count()
             }):
             self.run(self._toUnixPath("%s/qt5/configure " % self.source_folder) + " ".join(args), win_bash=tools.os_info.is_windows, msys_mingw=tools.os_info.is_windows)
             self.run("make", win_bash=tools.os_info.is_windows)
