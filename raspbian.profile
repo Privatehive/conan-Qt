@@ -1,0 +1,11 @@
+[settings]
+os=Linux
+arch=armv6
+compiler=gcc
+compiler.version=6
+compiler.libcxx=libstdc++11
+build_type=Release
+[options]
+[build_requires]
+raspbian/2020-02-14@tereius/stable
+[env] 

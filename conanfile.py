@@ -1,7 +1,8 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
+import pprint
 
-from conans import ConanFile, tools, AutoToolsBuildEnvironment
+from conans import ConanFile, tools, CMake
 from distutils.spawn import find_executable
 import os
 import shutil
@@ -30,15 +31,14 @@ class QtConan(ConanFile):
         return res
     submodules = getsubmodules()
 
-    name = "Qt"
-    version = "5.12.4"
+    version = "dev"
     description = "Conan.io package for Qt library."
     url = "https://github.com/Tereius/conan-Qt"
     homepage = "https://www.qt.io/"
     license = "http://doc.qt.io/qt-5/lgpl.html"
     exports = ["LICENSE.md", "qtmodules.conf"]
     exports_sources = ["CMakeLists.txt", "fix_qqmlthread_assertion_dbg.diff", "fix_ios_appstore.diff", "android.patch", "dylibToFramework.sh", "AwesomeQtMetadataParser"]
-    settings = "os", "arch", "compiler", "build_type", "os_build", "arch_build"
+    settings = "os", "arch", "compiler", "build_type"
 
     options = dict({
         "shared": [True, False],
@@ -51,21 +51,26 @@ class QtConan(ConanFile):
         }, **{module: [True,False] for module in submodules}
     )
     no_copy_source = True
-    default_options = ("shared=True", "fPIC=True", "opengl=desktop", "openssl=False", "GUI=True", "widgets=True", "config=None") + tuple(module + "=False" for module in submodules)
+    default_options = ("shared=True", "fPIC=True", "opengl=desktop", "openssl=False", "GUI=False", "widgets=False", "config=None") + tuple(module + "=False" for module in submodules)
     short_paths = True
+
+    def set_name(self):
+
+        is_build = False
+        is_host = False
+
+        if hasattr(self, 'settings_build'):
+            print("----------------- settings_build")
+            is_host = True
+
+        if hasattr(self, 'settings_target'):
+            print("----------------- settings_target")
+            is_build = True
+
+        self.name = "Qt"
 
     def build_requirements(self):
         self._build_system_requirements()
-        if self.settings.os == 'Android':
-            self.build_requires("android-ndk/r17b@tereius/stable")
-            self.build_requires("android-sdk/26.1.1@tereius/stable")
-            self.build_requires("java_installer/8.0.144@tereius/stable")
-            if self.settings.os_build == 'Windows':
-                self.build_requires("strawberryperl/5.26.0@conan/stable")
-                self.build_requires("msys2/20161025@tereius/stable")
-                self.build_requires_options['msys2'].provideMinGW = True
-        if self.settings.os == 'Emscripten':
-            self.build_requires("emsdk_installer/1.38.22@bincrafters/stable")
 
     def configure(self):
         if self.options.openssl:
@@ -142,225 +147,42 @@ class QtConan(ConanFile):
                 self.output.warn("Couldn't install system requirements")
 
     def source(self):
-        url = "http://download.qt.io/official_releases/qt/{0}/{1}/single/qt-everywhere-src-{1}"\
-            .format(self.version[:self.version.rfind('.')], self.version)
-        if tools.os_info.is_windows:
-            tools.get("%s.zip" % url)
-        else:
-            tools.get("%s.tar.xz" % url)
-            #self.run("wget -qO- %s.tar.xz | tar -xJ " % url)
-        shutil.move("qt-everywhere-src-%s" % self.version, "qt5")
-
-        # patches
-        #tools.replace_in_file("qt5/qtbase/src/plugins/platforms/ios/qioseventdispatcher.mm", "namespace", "Q_LOGGING_CATEGORY(lcEventDispatcher, \"qt.eventdispatcher\"); \n namespace")
-        #tools.replace_in_file("qt5/qtdeclarative/tools/qmltime/qmltime.pro", "QT += quick-private", "QT += quick-private\nios{\nCONFIG -= bitcode\n}")
-        #tools.replace_in_file("qt5/qtbase/src/platformsupport/clipboard/clipboard.pro", "macos: LIBS_PRIVATE += -framework AppKit", "macos: LIBS_PRIVATE += -framework AppKit\nios {\nLIBS += -framework MobileCoreServices\n}")
-
-        #tools.replace_in_file("qt5/qtbase/src/corelib/tools/qsimd_p.h", "#    include <x86intrin.h>", "# if !defined(__EMSCRIPTEN__)\n#  include <x86intrin.h>\n# endif")
-
-        tools.patch(patch_file="fix_ios_appstore.diff", base_path="qt5")
-        # Do not use subdirectories in plugin folder since this is not App Store compatible
-        #tools.replace_in_file("qt5/qtbase/src/corelib/plugin/qfactoryloader.cpp", "QString path = pluginDir + d->suffix;", "QString path = pluginDir;")
-
-        if self.settings.os == "Android":
-            tools.patch(patch_file="android.patch", base_path="qt5")
-
-        # fix error with mersenne_twisters
-        # https://codereview.qt-project.org/c/qt/qtbase/+/245425
-        # should not needed in Qt >= 5.12.1
-        tools.patch(patch_file="fix_qqmlthread_assertion_dbg.diff", base_path="qt5/qtdeclarative/")
-
-    def _toUnixPath(self, paths):
-        if self.settings.os == "Android" and tools.os_info.is_windows:
-            if(isinstance(paths, list)):
-                return list(map(lambda x: tools.unix_path(x), paths))
-            else:
-                return tools.unix_path(paths)
-        else:
-            return paths
+        git = tools.Git()
+        git.clone("https://github.com/qt/qt5.git", branch="dev", shallow=True)
+        git.run("submodule sync")
+        git.run("submodule init")
+        git.run("submodule update --depth 1 qtbase")
+        tools.replace_in_file("qtbase/src/tools/androidtestrunner/CMakeLists.txt", "Qt::Gui", "Qt::Core")
 
     def build(self):
-        args = ["-v", "-opensource", "-confirm-license", "-nomake examples", "-nomake tests",
-                "-prefix %s" % self._toUnixPath(self.package_folder)]
-        if not self.options.GUI:
-            args.append("-no-gui")
-        if not self.options.widgets:
-            args.append("-no-widgets")
-        if not self.options.shared:
-            args.insert(0, "-static")
-            if self.settings.os == "Windows":
-                if self.settings.compiler.runtime == "MT" or self.settings.compiler.runtime == "MTd":
-                    args.append("-static-runtime")
-        else:
-            args.insert(0, "-shared")
-        if self.settings.build_type == "Debug":
-            args.append("-debug")
-        else:
-            args.append("-release")
-        for module in QtConan.submodules:
-            if not getattr(self.options, module) and os.path.isdir(os.path.join(self.source_folder, 'qt5', QtConan.submodules[module]['path'])):
-                args.append("-skip " + module)
 
-        # openGL
-        if self.options.opengl == "no":
-            args += ["-no-opengl"]
-        elif self.options.opengl == "es2":
-            args += ["-opengl es2"]
-        elif self.options.opengl == "desktop":
-            args += ["-opengl desktop"]
-        if self.settings.os == "Windows":
-            if self.options.opengl == "dynamic":
-                args += ["-opengl dynamic"]
+        #self.deps_env_info["raspbian"]
 
-        # openSSL
-        if not self.options.openssl:
-            args += ["-no-openssl"]
-        else:
-            args += ["-openssl-linked"]
-            args += ["-I %s" % i for i in self._toUnixPath(self.deps_cpp_info["OpenSSL"].include_paths)]
-            libs = self._toUnixPath(self.deps_cpp_info["OpenSSL"].libs)
-            lib_paths = self._toUnixPath(self.deps_cpp_info["OpenSSL"].lib_paths)
-            os.environ["OPENSSL_LIBS"] = " ".join(["-L"+i for i in lib_paths] + ["-l"+i for i in libs])
-            os.environ["OPENSSL_LIBS_DEBUG"] = " ".join(["-L"+i for i in lib_paths] + ["-l"+i for i in libs])
-            os.environ["LD_RUN_PATH"] = " ".join([i+":" for i in lib_paths]) # Needed for secondary (indirect) dependency resolving of gnu ld
-            os.environ["LD_LIBRARY_PATH"] = " ".join([i+":" for i in lib_paths]) # Needed for secondary (indirect) dependency resolving of gnu ld
+        env = {}
+        #for key in dict(self.deps_env_info["raspbian"]):
+        #    env[key] = None
+        #    print("test " + key)
 
-        if self.options.config:
-            args.append(str(self.options.config))
-
-        if self.settings.os == "Windows":
-            if self.settings.compiler == "Visual Studio":
-                self._build_msvc(args)
-            else:
-                self._build_mingw(args)
-        elif self.settings.os == "Android":
-            self._build_android(args)
-        elif self.settings.os == "iOS":
-            self._build_ios(args)
-        elif self.settings.os == "Emscripten":
-            self._build_wasm(args)
-        else:
-            self._build_unix(args)
-
-        with open('qtbase/bin/qt.conf', 'w') as f:
-            f.write('[Paths]\nPrefix = ..')
-
-    def _build_msvc(self, args):
-        build_command = find_executable("jom.exe")
-        if build_command:
-            build_args = ["-j", str(tools.cpu_count())]
-        else:
-            build_command = "nmake.exe"
-            build_args = []
-        self.output.info("Using '%s %s' to build" % (build_command, " ".join(build_args)))
-
-
-        with tools.vcvars(self.settings):
-            self.run("%s/qt5/configure %s" % (self.source_folder, " ".join(args)))
-            self.run("%s %s" % (build_command, " ".join(build_args)))
-            self.run("%s install" % build_command)
-
-    def _build_mingw(self, args):
-        # Workaround for configure using clang first if in the path
-        new_path = []
-        for item in os.environ['PATH'].split(';'):
-            if item != 'C:\\Program Files\\LLVM\\bin':
-                new_path.append(item)
-        os.environ['PATH'] = ';'.join(new_path)
-        # end workaround
-        args += ["-xplatform win32-g++"]
-
-        with tools.environment_append({"MAKEFLAGS":"-j %d" % tools.cpu_count()}):
-            self.output.info("Using '%d' threads" % tools.cpu_count())
-            self.run("%s/qt5/configure.bat %s" % (self.source_folder, " ".join(args)))
-            self.run("mingw32-make")
-            self.run("mingw32-make install")
-
-    def _build_unix(self, args):
-        if self.settings.os == "Linux":
-            args.append("-no-use-gold-linker") # QTBUG-65071
-            if self.options.GUI:
-                args.append("-qt-xcb")
-            if self.settings.arch == "x86":
-                args += ["-xplatform linux-g++-32"]
-            elif self.settings.arch == "armv6":
-                args += ["-xplatform linux-arm-gnueabi-g++"]
-            elif self.settings.arch == "armv7":
-                args += ["-xplatform linux-arm-gnueabi-g++"]
-        else:
-            args += ["-no-framework"]
-            if self.settings.arch == "x86":
-                args += ["-xplatform macx-clang-32"]
-
-        env_build = AutoToolsBuildEnvironment(self)
-        self.run("%s/qt5/configure %s" % (self.source_folder, " ".join(args)))
-        env_build.make()
-        env_build.install()
-
-    def _build_ios(self, args):
-        # end workaround
-        args += ["--disable-rpath", "-skip qtserialport"]
-        args += ["-xplatform macx-ios-clang"]
-        args += ["-sdk iphoneos"]
-        args += ["QMAKE_IOS_DEPLOYMENT_TARGET=\"11.0\""]
-        #args += ["-sysroot " + tools.unix_path(self.deps_env_info['android-ndk'].SYSROOT)]
-        if self.settings.build_type == "Debug":
-            args += ["-no-framework"]
-
-        with tools.environment_append({"MAKEFLAGS":"-j %d" % tools.cpu_count()}):
-            self.output.info("Using '%d' threads" % tools.cpu_count())
-            self.run(("%s/qt5/configure " % self.source_folder) + " ".join(args))
-            self.run("make")
-            self.run("make install")
-
-    def _build_android(self, args):
-        # end workaround
-        args += ["--disable-rpath", "-skip qtserialport"]
-        if tools.os_info.is_windows:
-            args += ["-platform win32-g++"]
-        
-        if self.settings.compiler == 'gcc':
-            args += ["-xplatform android-g++"]
-        else:
-            args += ["-xplatform android-clang"]
-        args += ["-android-ndk-platform android-%s" % (str(self.settings.os.api_level))]
-        args += ["-android-ndk " + self._toUnixPath(self.deps_env_info['android-ndk'].NDK_ROOT)]
-        args += ["-android-sdk " + self._toUnixPath(self.deps_env_info['android-sdk'].SDK_ROOT)]
-        args += ["-android-ndk-host %s-%s" % (str(self.settings.os_build).lower(), str(self.settings.arch_build))]
-        args += ["-android-toolchain-version " + self.deps_env_info['android-ndk'].TOOLCHAIN_VERSION]
-        #args += ["-sysroot " + tools.unix_path(self.deps_env_info['android-ndk'].SYSROOT)]
-        args += ["-device-option CROSS_COMPILE=" + self.deps_env_info['android-ndk'].CHOST + "-"]
-
-        if str(self.settings.arch).startswith('x86'):
-            args.append('-android-arch x86')
-        elif str(self.settings.arch).startswith('x86_64'):
-            args.append('-android-arch x86_64')
-        elif str(self.settings.arch).startswith('armv6'):
-            args.append('-android-arch armeabi')
-        elif str(self.settings.arch).startswith('armv7'):
-            args.append("-android-arch armeabi-v7a")
-        elif str(self.settings.arch).startswith('armv8'):
-            args.append("-android-arch arm64-v8a")
-
-        self.output.info("Using '%d' threads" % tools.cpu_count())
-        with tools.environment_append({
-                # The env. vars set by conan android-ndk. Configure doesn't read them (on windows they contain backslashes).
-                "NDK_ROOT": self._toUnixPath(tools.get_env("NDK_ROOT")),
-                "ANDROID_NDK_ROOT": self._toUnixPath(tools.get_env("NDK_ROOT")),
-                "SYSROOT": self._toUnixPath(tools.get_env("SYSROOT")),
-                "MAKEFLAGS":"-j %d" % tools.cpu_count()
-            }):
-            self.run(self._toUnixPath("%s/qt5/configure " % self.source_folder) + " ".join(args), win_bash=tools.os_info.is_windows, msys_mingw=tools.os_info.is_windows)
-            self.run("make", win_bash=tools.os_info.is_windows)
-            self.run("make install", win_bash=tools.os_info.is_windows)
-
-    def _build_wasm(self, args):
-        args += ["--disable-rpath", "-skip qttranslations", "-skip qtserialport"]
-        args += ["-xplatform wasm-emscripten"]
-        env_build = AutoToolsBuildEnvironment(self)
-        self.run("%s/qt5/configure %s" % (self.source_folder, " ".join(args)))
-        env_build.make()
-        env_build.install()
+        #with tools.environment_append({"CC": None, "CHOST": None, "SYSROOT": None, "CXX": None, "AS": None, "LD": None, "AR": None}):
+        #    self.run('cmake -G Ninja -DBUILD_EXAMPLES=False -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=%s -S "%s" -B %s' % (os.path.join(self.source_folder, "host_install"), self.source_folder, os.path.join(self.source_folder, "host_build")))
+        #    self.run('cmake --build %s --target install --parallel' % (os.path.join(self.source_folder, "host_build")))
+        cmake = CMake(self)
+        if tools.cross_building(self):
+            cmake.definitions["QT_HOST_PATH"] = os.environ["QT_HOST_PATH"]
+        cmake.definitions["BUILD_EXAMPLES"] = "OFF"
+        cmake.definitions["QT_NO_MAKE_EXAMPLES"] = "ON"
+        cmake.definitions["QT_NO_MAKE_TESTS"] = "ON"
+        cmake.definitions["QT_NO_MAKE_TOOLS"] = "ON"
+        cmake.definitions["FEATURE_gui"] = "OFF"
+        cmake.definitions["FEATURE_network"] = "OFF"
+        cmake.definitions["FEATURE_sql"] = "OFF"
+        #cmake.definitions["FEATURE_xml"] = "OFF"
+        cmake.definitions["FEATURE_printsupport"] = "OFF"
+        cmake.definitions["FEATURE_testlib"] = "OFF"
+        cmake.definitions["FEATURE_widgets"] = "OFF"
+        cmake.configure()
+        cmake.build()
+        cmake.install()
 
     def package(self):
         self.copy("bin/qt.conf", src="qtbase")
@@ -374,4 +196,6 @@ class QtConan(ConanFile):
     def package_info(self):
         self.env_info.path.append(os.path.join(self.package_folder, "bin"))
         self.env_info.path.append(os.path.join(self.package_folder, "qttools/bin"))
+        self.output.info('Creating QT_HOST_PATH environment variable: %s' % self.package_folder)
+        self.env_info.QT_HOST_PATH = self.package_folder
         self.env_info.CMAKE_PREFIX_PATH.append(self.package_folder)
