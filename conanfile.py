@@ -70,6 +70,8 @@ class QtConan(ConanFile):
         self.name = "Qt"
 
     def build_requirements(self):
+        if tools.cross_building(self):
+            self.build_requires("%s/%s@%s/%s" % (self.name, self.version, self.user, self.channel))
         self._build_system_requirements()
 
     def configure(self):
@@ -153,6 +155,9 @@ class QtConan(ConanFile):
         git.run("submodule init")
         git.run("submodule update --depth 1 qtbase")
         tools.replace_in_file("qtbase/src/tools/androidtestrunner/CMakeLists.txt", "Qt::Gui", "Qt::Core")
+        tools.replace_in_file("CMakeLists.txt", "set(QT_NO_CREATE_TARGETS TRUE)", "")
+        #tools.replace_in_file("qtbase/cmake/QtBuild.cmake", "function(qt_check_if_tools_will_be_built)", 'function(qt_check_if_tools_will_be_built)\nmessage(STATUS "++++++++++++ ${QT_FORCE_FIND_TOOLS}, ${CMAKE_CROSSCOMPILING}, ${QT_BUILD_TOOLS_WHEN_CROSSCOMPILING}")')
+        #tools.replace_in_file("qtbase/cmake/QtBuild.cmake", 'set(QT_WILL_BUILD_TOOLS ${will_build_tools} CACHE INTERNAL "Are tools going to be built" FORCE)', 'set(QT_WILL_BUILD_TOOLS ${will_build_tools} CACHE INTERNAL "Are tools going to be built" FORCE)\nmessage(STATUS "QT_WILL_BUILD_TOOLS ${QT_WILL_BUILD_TOOLS}, QT_NO_CREATE_TARGETS ${QT_NO_CREATE_TARGETS}")')
 
     def build(self):
 
@@ -167,8 +172,11 @@ class QtConan(ConanFile):
         #    self.run('cmake -G Ninja -DBUILD_EXAMPLES=False -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=%s -S "%s" -B %s' % (os.path.join(self.source_folder, "host_install"), self.source_folder, os.path.join(self.source_folder, "host_build")))
         #    self.run('cmake --build %s --target install --parallel' % (os.path.join(self.source_folder, "host_build")))
         cmake = CMake(self)
+        #cmake.verbose = True
         if tools.cross_building(self):
             cmake.definitions["QT_HOST_PATH"] = os.environ["QT_HOST_PATH"]
+            cmake.definitions["QT_FORCE_FIND_TOOLS"] = "OFF"
+            cmake.definitions["QT_BUILD_TOOLS_WHEN_CROSSCOMPILING"] = "OFF"
         cmake.definitions["BUILD_EXAMPLES"] = "OFF"
         cmake.definitions["QT_NO_MAKE_EXAMPLES"] = "ON"
         cmake.definitions["QT_NO_MAKE_TESTS"] = "ON"
@@ -180,6 +188,7 @@ class QtConan(ConanFile):
         cmake.definitions["FEATURE_printsupport"] = "OFF"
         cmake.definitions["FEATURE_testlib"] = "OFF"
         cmake.definitions["FEATURE_widgets"] = "OFF"
+        #cmake.definitions["CMAKE_FIND_DEBUG_MODE"] = "ON"
         cmake.configure()
         cmake.build()
         cmake.install()
