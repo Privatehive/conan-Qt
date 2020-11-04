@@ -150,12 +150,13 @@ class QtConan(ConanFile):
 
     def source(self):
         git = tools.Git()
-        git.clone("https://github.com/qt/qt5.git", branch="dev", shallow=True)
+        git.clone("https://github.com/qt/qt5.git", branch="v6.0.0-beta1", shallow=True)
         git.run("submodule sync")
         git.run("submodule init")
         git.run("submodule update --depth 1 qtbase")
-        tools.replace_in_file("qtbase/src/tools/androidtestrunner/CMakeLists.txt", "Qt::Gui", "Qt::Core")
-        tools.replace_in_file("CMakeLists.txt", "set(QT_NO_CREATE_TARGETS TRUE)", "")
+        #tools.replace_in_file("qtbase/src/tools/androidtestrunner/CMakeLists.txt", "Qt::Gui", "Qt::Core")
+        #tools.replace_in_file("CMakeLists.txt", "set(QT_NO_CREATE_TARGETS TRUE)", "")
+        
         #tools.replace_in_file("qtbase/cmake/QtBuild.cmake", "function(qt_check_if_tools_will_be_built)", 'function(qt_check_if_tools_will_be_built)\nmessage(STATUS "++++++++++++ ${QT_FORCE_FIND_TOOLS}, ${CMAKE_CROSSCOMPILING}, ${QT_BUILD_TOOLS_WHEN_CROSSCOMPILING}")')
         #tools.replace_in_file("qtbase/cmake/QtBuild.cmake", 'set(QT_WILL_BUILD_TOOLS ${will_build_tools} CACHE INTERNAL "Are tools going to be built" FORCE)', 'set(QT_WILL_BUILD_TOOLS ${will_build_tools} CACHE INTERNAL "Are tools going to be built" FORCE)\nmessage(STATUS "QT_WILL_BUILD_TOOLS ${QT_WILL_BUILD_TOOLS}, QT_NO_CREATE_TARGETS ${QT_NO_CREATE_TARGETS}")')
 
@@ -188,7 +189,9 @@ class QtConan(ConanFile):
         cmake.definitions["FEATURE_printsupport"] = "OFF"
         cmake.definitions["FEATURE_testlib"] = "OFF"
         cmake.definitions["FEATURE_widgets"] = "OFF"
-        #cmake.definitions["CMAKE_FIND_DEBUG_MODE"] = "ON"
+        cmake.definitions["QT_DEBUG_QT_FIND_PACKAGE"] = 1
+        cmake.definitions["CMAKE_FIND_DEBUG_MODE"] = "ON"
+        cmake.definitions["CMAKE_VERBOSE_MAKEFILE"] = "ON"
         cmake.configure()
         cmake.build()
         cmake.install()
