@@ -7,38 +7,41 @@ from distutils.spawn import find_executable
 import os
 import shutil
 import configparser
+import tempfile
 
 
 class QtConan(ConanFile):
 
-    def getsubmodules():
-        config = configparser.ConfigParser()
-        config.read('qtmodules.conf')
-        res = {}
-        assert config.sections()
-        for s in config.sections():
-            section = str(s)
-            assert section.startswith("submodule ")
-            assert section.count('"') == 2
-            modulename = section[section.find('"') + 1 : section.rfind('"')]
-            status = str(config.get(section, "status"))
-            if status != "obsolete" and status != "ignore":
-                res[modulename] = {"branch":str(config.get(section, "branch")), "status":status, "path":str(config.get(section, "path"))}
-                if config.has_option(section, "depends"):
-                    res[modulename]["depends"] = [str(i) for i in config.get(section, "depends").split()]
-                else:
-                    res[modulename]["depends"] = []
-        return res
-    submodules = getsubmodules()
+    def getsubmodules(version):
+        with tempfile.TemporaryDirectory() as tmpdirname:
+            config = configparser.ConfigParser()
+            tools.download("https://raw.githubusercontent.com/qt/qt5/%s/.gitmodules" % str(version), os.path.join(tmpdirname, "qtmodules.conf"))
+            config.read(os.path.join(tmpdirname, "qtmodules.conf"))
+            res = {}
+            assert config.sections()
+            for s in config.sections():
+                section = str(s)
+                assert section.startswith("submodule ")
+                assert section.count('"') == 2
+                modulename = section[section.find('"') + 1 : section.rfind('"')]
+                status = str(config.get(section, "status"))
+                if status != "obsolete" and status != "ignore":
+                    res[modulename] = {"branch":str(config.get(section, "branch")), "status":status, "path":str(config.get(section, "path"))}
+                    if config.has_option(section, "depends"):
+                        res[modulename]["depends"] = [str(i) for i in config.get(section, "depends").split()]
+                    else:
+                        res[modulename]["depends"] = []
+            return res
 
-    version = "dev"
+    version = "6.0"
     description = "Conan.io package for Qt library."
     url = "https://github.com/Tereius/conan-Qt"
     homepage = "https://www.qt.io/"
     license = "http://doc.qt.io/qt-5/lgpl.html"
-    exports = ["LICENSE.md", "qtmodules.conf"]
-    exports_sources = ["CMakeLists.txt", "fix_qqmlthread_assertion_dbg.diff", "fix_ios_appstore.diff", "android.patch", "dylibToFramework.sh", "AwesomeQtMetadataParser"]
+    exports = ["LICENSE.md"]
+    exports_sources = ["CMakeLists.txt", "fix_qqmlthread_assertion_dbg.diff", "fix_ios_appstore.diff", "android.patch", "dylibToFramework.sh", "AwesomeQtMetadataParser", "egl_brcm.patch", "eglfs_brcm/CMakeLists.txt"]
     settings = "os", "arch", "compiler", "build_type"
+    submodules = getsubmodules(version)
 
     options = dict({
         "shared": [True, False],
@@ -150,28 +153,25 @@ class QtConan(ConanFile):
 
     def source(self):
         git = tools.Git()
-        git.clone("https://github.com/qt/qt5.git", branch="v6.0.0-beta1", shallow=True)
+        git.clone("https://github.com/qt/qt5.git", branch=self.version, shallow=True)
         git.run("submodule sync")
         git.run("submodule init")
         git.run("submodule update --depth 1 qtbase")
-        #tools.replace_in_file("qtbase/src/tools/androidtestrunner/CMakeLists.txt", "Qt::Gui", "Qt::Core")
-        #tools.replace_in_file("CMakeLists.txt", "set(QT_NO_CREATE_TARGETS TRUE)", "")
+        
+        #if "RASPBIAN_ROOTFS" in os.environ:
+        tools.replace_in_file("qtbase/src/corelib/io/qfilesystemengine_unix.cpp", "QT_BEGIN_NAMESPACE", "QT_BEGIN_NAMESPACE\n#undef STATX_BASIC_STATS")
+        tools.replace_in_file("qtbase/cmake/3rdparty/extra-cmake-modules/find-modules/FindEGL.cmake", "cmake_pop_check_state()", "cmake_pop_check_state()\nset(HAVE_EGL ON)")
+        tools.patch(base_path="qtbase", patch_file="egl_brcm.patch")
+        
+        tools.replace_in_file("qtbase/src/plugins/platforms/eglfs/deviceintegration/CMakeLists.txt", "# add_subdirectory(eglfs_brcm) # special case TODO", "add_subdirectory(eglfs_brcm)")
+        shutil.copyfile(os.path.join(self.source_folder, "eglfs_brcm", "CMakeLists.txt"), os.path.join(self.source_folder, "qtbase", "src", "plugins", "platforms", "eglfs", "deviceintegration", "eglfs_brcm", "CMakeLists.txt"))
+        shutil.rmtree(os.path.join(self.source_folder, "eglfs_brcm"))
         
         #tools.replace_in_file("qtbase/cmake/QtBuild.cmake", "function(qt_check_if_tools_will_be_built)", 'function(qt_check_if_tools_will_be_built)\nmessage(STATUS "++++++++++++ ${QT_FORCE_FIND_TOOLS}, ${CMAKE_CROSSCOMPILING}, ${QT_BUILD_TOOLS_WHEN_CROSSCOMPILING}")')
         #tools.replace_in_file("qtbase/cmake/QtBuild.cmake", 'set(QT_WILL_BUILD_TOOLS ${will_build_tools} CACHE INTERNAL "Are tools going to be built" FORCE)', 'set(QT_WILL_BUILD_TOOLS ${will_build_tools} CACHE INTERNAL "Are tools going to be built" FORCE)\nmessage(STATUS "QT_WILL_BUILD_TOOLS ${QT_WILL_BUILD_TOOLS}, QT_NO_CREATE_TARGETS ${QT_NO_CREATE_TARGETS}")')
 
     def build(self):
 
-        #self.deps_env_info["raspbian"]
-
-        env = {}
-        #for key in dict(self.deps_env_info["raspbian"]):
-        #    env[key] = None
-        #    print("test " + key)
-
-        #with tools.environment_append({"CC": None, "CHOST": None, "SYSROOT": None, "CXX": None, "AS": None, "LD": None, "AR": None}):
-        #    self.run('cmake -G Ninja -DBUILD_EXAMPLES=False -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=%s -S "%s" -B %s' % (os.path.join(self.source_folder, "host_install"), self.source_folder, os.path.join(self.source_folder, "host_build")))
-        #    self.run('cmake --build %s --target install --parallel' % (os.path.join(self.source_folder, "host_build")))
         cmake = CMake(self)
         #cmake.verbose = True
         if tools.cross_building(self):
@@ -182,16 +182,28 @@ class QtConan(ConanFile):
         cmake.definitions["QT_NO_MAKE_EXAMPLES"] = "ON"
         cmake.definitions["QT_NO_MAKE_TESTS"] = "ON"
         cmake.definitions["QT_NO_MAKE_TOOLS"] = "ON"
-        cmake.definitions["FEATURE_gui"] = "OFF"
-        cmake.definitions["FEATURE_network"] = "OFF"
+        if self.options.GUI:
+            cmake.definitions["FEATURE_gui"] = "ON"
+        else:
+            cmake.definitions["FEATURE_gui"] = "OFF"
+        if self.options.widgets:
+            cmake.definitions["FEATURE_widgets"] = "ON"
+        else:
+            cmake.definitions["FEATURE_widgets"] = "OFF"
+        cmake.definitions["FEATURE_network"] = "ON"
         cmake.definitions["FEATURE_sql"] = "OFF"
-        #cmake.definitions["FEATURE_xml"] = "OFF"
         cmake.definitions["FEATURE_printsupport"] = "OFF"
         cmake.definitions["FEATURE_testlib"] = "OFF"
-        cmake.definitions["FEATURE_widgets"] = "OFF"
-        cmake.definitions["QT_DEBUG_QT_FIND_PACKAGE"] = 1
-        cmake.definitions["CMAKE_FIND_DEBUG_MODE"] = "ON"
-        cmake.definitions["CMAKE_VERBOSE_MAKEFILE"] = "ON"
+        #cmake.definitions["QT_DEBUG_QT_FIND_PACKAGE"] = 1
+        #cmake.definitions["CMAKE_FIND_DEBUG_MODE"] = "ON"
+        #cmake.definitions["CMAKE_VERBOSE_MAKEFILE"] = "ON"
+        
+        if "RASPBIAN_ROOTFS" in os.environ:
+            cmake.definitions["FEATURE_libudev"] = "OFF"
+            cmake.definitions["FEATURE_brotli"] = "OFF"
+            cmake.definitions["FEATURE_mtdev"] = "OFF"
+            cmake.definitions["FEATURE_tslib"] = "OFF"
+        
         cmake.configure()
         cmake.build()
         cmake.install()
