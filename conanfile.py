@@ -12,7 +12,7 @@ import tempfile
 
 class QtConan(ConanFile):
 
-    def getsubmodules(version):
+    def getsubmodules(version, status_filter=None):
         with tempfile.TemporaryDirectory() as tmpdirname:
             config = configparser.ConfigParser()
             tools.download("https://raw.githubusercontent.com/qt/qt5/%s/.gitmodules" % str(version), os.path.join(tmpdirname, "qtmodules.conf"))
@@ -25,7 +25,7 @@ class QtConan(ConanFile):
                 assert section.count('"') == 2
                 modulename = section[section.find('"') + 1 : section.rfind('"')]
                 status = str(config.get(section, "status"))
-                if status != "obsolete" and status != "ignore":
+                if (status_filter == None and status != "obsolete" and status != "ignore") or (status_filter != None and status == status_filter):
                     res[modulename] = {"branch":str(config.get(section, "branch")), "status":status, "path":str(config.get(section, "path"))}
                     if config.has_option(section, "depends"):
                         res[modulename]["depends"] = [str(i) for i in config.get(section, "depends").split()]
@@ -33,7 +33,7 @@ class QtConan(ConanFile):
                         res[modulename]["depends"] = []
             return res
 
-    version = "6.0"
+    version = "6.0.0"
     description = "Conan.io package for Qt library."
     url = "https://github.com/Tereius/conan-Qt"
     homepage = "https://www.qt.io/"
@@ -42,6 +42,7 @@ class QtConan(ConanFile):
     exports_sources = ["CMakeLists.txt", "fix_qqmlthread_assertion_dbg.diff", "fix_ios_appstore.diff", "android.patch", "dylibToFramework.sh", "AwesomeQtMetadataParser", "egl_brcm.patch", "eglfs_brcm/CMakeLists.txt"]
     settings = "os", "arch", "compiler", "build_type"
     submodules = getsubmodules(version)
+    essential_submodules = getsubmodules(version, "essential")
 
     options = dict({
         "shared": [True, False],
@@ -54,7 +55,7 @@ class QtConan(ConanFile):
         }, **{module: [True,False] for module in submodules}
     )
     no_copy_source = True
-    default_options = ("shared=True", "fPIC=True", "opengl=desktop", "openssl=False", "GUI=False", "widgets=False", "config=None") + tuple(module + "=False" for module in submodules)
+    default_options = ("shared=True", "fPIC=True", "opengl=desktop", "openssl=False", "GUI=False", "widgets=False", "config=None") + tuple(module + "=False" for module in submodules) + tuple(module + "=True" for module in essential_submodules)
     short_paths = True
 
     def set_name(self):
@@ -75,6 +76,9 @@ class QtConan(ConanFile):
     def build_requirements(self):
         if tools.cross_building(self):
             self.build_requires("%s/%s@%s/%s" % (self.name, self.version, self.user, self.channel))
+            for essential_module in self.essential_submodules:
+                if essential_module != "qtqa":
+                    setattr(self.build_requires_options[self.name], essential_module, True)
         self._build_system_requirements()
 
     def configure(self):
@@ -110,6 +114,8 @@ class QtConan(ConanFile):
         for module in QtConan.submodules:
             if getattr(self.options, module):
                 enablemodule(self, module)
+        if self.options.qtdeclarative == True:
+            self.options.GUI = True
 
     def _build_system_requirements(self):
         if self.settings.os == "Linux" and tools.os_info.is_linux:
@@ -156,7 +162,7 @@ class QtConan(ConanFile):
         git.clone("https://github.com/qt/qt5.git", branch=self.version, shallow=True)
         git.run("submodule sync")
         git.run("submodule init")
-        git.run("submodule update --depth 1 qtbase")
+        git.run("submodule update --recursive --depth 1")
         
         #if "RASPBIAN_ROOTFS" in os.environ:
         tools.replace_in_file("qtbase/src/corelib/io/qfilesystemengine_unix.cpp", "QT_BEGIN_NAMESPACE", "QT_BEGIN_NAMESPACE\n#undef STATX_BASIC_STATS")
@@ -173,14 +179,21 @@ class QtConan(ConanFile):
     def build(self):
 
         cmake = CMake(self)
+        module_list = []
+        
+        for module in QtConan.submodules:
+            if getattr(self.options, module):
+                module_list.append(module)
+                
+        cmake.definitions["BUILD_SUBMODULES"] = ";".join(module_list)
         #cmake.verbose = True
         if tools.cross_building(self):
             cmake.definitions["QT_HOST_PATH"] = os.environ["QT_HOST_PATH"]
             cmake.definitions["QT_FORCE_FIND_TOOLS"] = "OFF"
             cmake.definitions["QT_BUILD_TOOLS_WHEN_CROSSCOMPILING"] = "OFF"
+            #cmake.definitions["QT_NO_MAKE_TESTS"] = "ON"
         cmake.definitions["BUILD_EXAMPLES"] = "OFF"
         cmake.definitions["QT_NO_MAKE_EXAMPLES"] = "ON"
-        cmake.definitions["QT_NO_MAKE_TESTS"] = "ON"
         cmake.definitions["QT_NO_MAKE_TOOLS"] = "ON"
         if self.options.GUI:
             cmake.definitions["FEATURE_gui"] = "ON"
@@ -190,10 +203,15 @@ class QtConan(ConanFile):
             cmake.definitions["FEATURE_widgets"] = "ON"
         else:
             cmake.definitions["FEATURE_widgets"] = "OFF"
+        if self.options.shared:
+            cmake.definitions["BUILD_SHARED_LIBS"] = "ON" # FEATURE_shared
+        else:
+            cmake.definitions["BUILD_SHARED_LIBS"] = "OFF"
         cmake.definitions["FEATURE_network"] = "ON"
         cmake.definitions["FEATURE_sql"] = "OFF"
         cmake.definitions["FEATURE_printsupport"] = "OFF"
-        cmake.definitions["FEATURE_testlib"] = "OFF"
+        #cmake.definitions["FEATURE_testlib"] = "OFF"
+        
         #cmake.definitions["QT_DEBUG_QT_FIND_PACKAGE"] = 1
         #cmake.definitions["CMAKE_FIND_DEBUG_MODE"] = "ON"
         #cmake.definitions["CMAKE_VERBOSE_MAKEFILE"] = "ON"
@@ -203,6 +221,10 @@ class QtConan(ConanFile):
             cmake.definitions["FEATURE_brotli"] = "OFF"
             cmake.definitions["FEATURE_mtdev"] = "OFF"
             cmake.definitions["FEATURE_tslib"] = "OFF"
+        
+        if self.options.openssl:
+            cmake.definitions["FEATURE_openssl"] = "ON"
+            cmake.definitions["FEATURE_openssl_linked"] = "ON"
         
         cmake.configure()
         cmake.build()
