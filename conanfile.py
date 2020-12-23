@@ -160,7 +160,7 @@ class QtConan(ConanFile):
 
         tools.patch(patch_file="fix_ios_appstore.diff", base_path="qt5")
         # Do not use subdirectories in plugin folder since this is not App Store compatible
-        #tools.replace_in_file("qt5/qtbase/src/corelib/plugin/qfactoryloader.cpp", "QString path = pluginDir + d->suffix;", "QString path = pluginDir;")
+        tools.replace_in_file("qt5/qtdeclarative/src/3rdparty/masm/wtf/OSAllocatorPosix.cpp", "#include <sys/syscall.h>", "#include <sys/syscall.h>\n#include <linux/limits.h>")
 
         if self.settings.os == "Android":
             tools.patch(patch_file="android.patch", base_path="qt5")
@@ -239,6 +239,8 @@ class QtConan(ConanFile):
             self._build_ios(args)
         elif self.settings.os == "Emscripten":
             self._build_wasm(args)
+        elif self.settings.os == "Linux" and os.getenv("RASPBIAN_ROOTFS") is not None:
+            self._build_raspbian(args)
         else:
             self._build_unix(args)
 
@@ -357,6 +359,16 @@ class QtConan(ConanFile):
     def _build_wasm(self, args):
         args += ["--disable-rpath", "-skip qttranslations", "-skip qtserialport"]
         args += ["-xplatform wasm-emscripten"]
+        env_build = AutoToolsBuildEnvironment(self)
+        self.run("%s/qt5/configure %s" % (self.source_folder, " ".join(args)))
+        env_build.make()
+        env_build.install()
+
+    def _build_raspbian(self, args):
+        args += ["--disable-rpath", "-skip qttranslations", "-skip qtserialport"]
+        args += ["-device linux-rasp-pi-g++"]
+        args += ["-device-option CROSS_COMPILE=" + self.deps_env_info['raspbian'].CHOST + "-"]
+        args += ["-sysroot " + self.deps_env_info['raspbian'].RASPBIAN_ROOTFS]
         env_build = AutoToolsBuildEnvironment(self)
         self.run("%s/qt5/configure %s" % (self.source_folder, " ".join(args)))
         env_build.make()
