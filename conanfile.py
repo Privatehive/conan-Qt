@@ -181,7 +181,7 @@ class QtConan(ConanFile):
 
     def build(self):
         args = ["-v", "-opensource", "-confirm-license", "-nomake examples", "-nomake tests",
-                "-prefix %s" % self._toUnixPath(self.package_folder)]
+                "-extprefix %s" % self._toUnixPath(self.package_folder)]
         if not self.options.GUI:
             args.append("-no-gui")
         if not self.options.widgets:
