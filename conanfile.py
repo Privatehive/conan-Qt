@@ -6,6 +6,8 @@ from distutils.spawn import find_executable
 import os
 import shutil
 import configparser
+import re
+import stat
 
 
 class QtConan(ConanFile):
@@ -66,6 +68,8 @@ class QtConan(ConanFile):
                 self.build_requires_options['msys2'].provideMinGW = True
         if self.settings.os == 'Emscripten':
             self.build_requires("emsdk_installer/1.38.22@bincrafters/stable")
+        if self.settings.os == 'Windows' and self.settings.compiler == 'Visual Studio':
+            self.build_requires("jom/1.1.3@tereius/stable")
 
     def configure(self):
         if self.options.openssl:
@@ -376,14 +380,41 @@ class QtConan(ConanFile):
 
     def package(self):
         self.copy("bin/qt.conf", src="qtbase")
-        if self.settings.os == "Android" and tools.os_info.is_windows:
-            self.copy("libgcc_s_seh-1.dll", dst="bin", src=os.path.join(self.deps_env_info['msys2'].MSYS_ROOT, "mingw64", "bin"))
-            self.copy("libstdc++-6.dll", dst="bin", src=os.path.join(self.deps_env_info['msys2'].MSYS_ROOT, "mingw64", "bin"))
-            self.copy("libwinpthread-1.dll", dst="bin", src=os.path.join(self.deps_env_info['msys2'].MSYS_ROOT, "mingw64", "bin"))
+        if self.settings.os == "Android":
+            # One qt cmake file contains hardcoded paths. We have to remove those. Otherwise this arifact wouldn't be relocatable
+            file_name = os.path.join(self.package_folder, "lib", "cmake", "Qt5Gui", "Qt5GuiConfigExtras.cmake")
+            fin = open(file_name, "rt")
+            lines = fin.readlines()
+            fin.close()
+            fin = open(file_name, "wt")
+            pattern = re.compile(r'_qt5gui_find_extra_libs\((\S+)\s\"([^\"]+)\".+\)')
+            for line in lines:
+                match = pattern.search(line)
+                if match and len(match.groups()) == 2 and os.path.isabs(match.group(2)):
+                    lib_name = os.path.basename(match.group(2))[:-2]
+                    lib_name = os.path.splitext(lib_name)[0]
+                    other_lib_name = lib_name.replace("lib", "")
+                    replace = '_qt5gui_find_extra_libs(%s "%s;%s" "${ANDROID_SYSTEM_LIBRARY_PATH}/usr/lib" "")' % (
+                    match.group(1), lib_name, other_lib_name)
+                    line = line[:match.start(0)] + replace + line[match.end(0):]
+                    fin.write(line)
+                else:
+                    fin.write(line)
+            fin.close()
+            if tools.os_info.is_windows:
+                self.copy("libgcc_s_seh-1.dll", dst="bin", src=os.path.join(self.deps_env_info['msys2'].MSYS_ROOT, "mingw64", "bin"))
+                self.copy("libstdc++-6.dll", dst="bin", src=os.path.join(self.deps_env_info['msys2'].MSYS_ROOT, "mingw64", "bin"))
+                self.copy("libwinpthread-1.dll", dst="bin", src=os.path.join(self.deps_env_info['msys2'].MSYS_ROOT, "mingw64", "bin"))
         if self.settings.os == "iOS" and self.settings.build_type == "Release":
-            self.run("%s/dylibToFramework.sh %s %s" % (self.source_folder, self.package_folder, os.path.join(self.source_folder, "AwesomeQtMetadataParser")))
+            dylibToFramework_script = os.path.join(self.source_folder, "dylibToFramework.sh")
+            os.chmod(dylibToFramework_script, os.stat(dylibToFramework_script).st_mode | stat.S_IEXEC)
+            metadataParser_exe = os.path.join(self.source_folder, "AwesomeQtMetadataParser")
+            os.chmod(metadataParser_exe, os.stat(metadataParser_exe).st_mode | stat.S_IEXEC)
+            self.run("%s %s %s" % (dylibToFramework_script, self.package_folder, metadataParser_exe))
+
+    def package_id(self):
+        self.info.include_build_settings()
 
     def package_info(self):
-        self.env_info.path.append(os.path.join(self.package_folder, "bin"))
-        self.env_info.path.append(os.path.join(self.package_folder, "qttools/bin"))
-        self.env_info.CMAKE_PREFIX_PATH.append(self.package_folder)
+        self.env_info.PATH.append(os.path.join(self.package_folder, "bin"))
+        self.env_info.PATH.append(os.path.join(self.package_folder, "qttools", "bin"))
