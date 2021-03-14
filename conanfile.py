@@ -1,12 +1,12 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
+import re
 
 from conans import ConanFile, tools, AutoToolsBuildEnvironment
 from distutils.spawn import find_executable
 import os
 import shutil
 import configparser
-import re
 import stat
 
 
@@ -33,13 +33,13 @@ class QtConan(ConanFile):
     submodules = getsubmodules()
 
     name = "Qt"
-    version = "5.12.4"
+    version = "5.15.2"
     description = "Conan.io package for Qt library."
     url = "https://github.com/Tereius/conan-Qt"
     homepage = "https://www.qt.io/"
     license = "http://doc.qt.io/qt-5/lgpl.html"
     exports = ["LICENSE.md", "qtmodules.conf"]
-    exports_sources = ["CMakeLists.txt", "fix_qqmlthread_assertion_dbg.diff", "fix_ios_appstore.diff", "android.patch", "dylibToFramework.sh", "AwesomeQtMetadataParser"]
+    exports_sources = ["CMakeLists.txt", "fix_qqmlthread_assertion_dbg.diff", "fix_ios_appstore.diff", "android.patch", "QTBUG-30467.patch", "QTBUG-87863.patch", "dylibToFramework.sh", "AwesomeQtMetadataParser"]
     settings = "os", "arch", "compiler", "build_type", "os_build", "arch_build"
 
     options = dict({
@@ -59,12 +59,15 @@ class QtConan(ConanFile):
     def build_requirements(self):
         self._build_system_requirements()
         if self.settings.os == 'Android':
-            self.build_requires("android-ndk/r17b@tereius/stable")
-            self.build_requires("android-sdk/26.1.1@tereius/stable")
+            self.build_requires("android-ndk/r21e@tereius/stable")
+            self.build_requires("android-sdk/latest@tereius/stable")
+            self.build_requires_options['android-sdk'].platformVersion = 28
             self.build_requires("java_installer/8.0.144@tereius/stable")
             if self.settings.os_build == 'Windows':
                 self.build_requires("strawberryperl/5.26.0@conan/stable")
                 self.build_requires("msys2/20161025@tereius/stable")
+                # if msys2 is updated to 20200517:
+                #self.build_requires_options['msys2'].additional_packages = "mingw-w64-i686-toolchain,mingw-w64-x86_64-toolchain"
                 self.build_requires_options['msys2'].provideMinGW = True
         if self.settings.os == 'Emscripten':
             self.build_requires("emsdk_installer/1.38.22@bincrafters/stable")
@@ -83,6 +86,10 @@ class QtConan(ConanFile):
             self.options.GUI = True
         if not self.options.GUI:
             self.options.opengl = "no"
+
+        if self.settings.os == "Windows" or self.settings.os == "Macos" or self.settings.os == "Linux":
+            if self.options.opengl != "no":
+                self.options.opengl = "desktop"
         if self.settings.os == "Android":
             self.options["android-ndk"].makeStandalone = False
             if self.options.opengl != "no":
@@ -155,24 +162,20 @@ class QtConan(ConanFile):
             #self.run("wget -qO- %s.tar.xz | tar -xJ " % url)
         shutil.move("qt-everywhere-src-%s" % self.version, "qt5")
 
+        tools.replace_in_file("qt5/qtbase/src/network/ssl/ssl.pri", "build_pass|single_android_abi: LIBS_PRIVATE += -lssl_$${QT_ARCH} -lcrypto_$${QT_ARCH}", "QMAKE_USE_FOR_PRIVATE += openssl")
+        tools.replace_in_file("qt5/qtdeclarative/src/3rdparty/masm/masm.pri", "$$QMAKE_PYTHON", "python")
         # patches
-        #tools.replace_in_file("qt5/qtbase/src/plugins/platforms/ios/qioseventdispatcher.mm", "namespace", "Q_LOGGING_CATEGORY(lcEventDispatcher, \"qt.eventdispatcher\"); \n namespace")
-        #tools.replace_in_file("qt5/qtdeclarative/tools/qmltime/qmltime.pro", "QT += quick-private", "QT += quick-private\nios{\nCONFIG -= bitcode\n}")
-        #tools.replace_in_file("qt5/qtbase/src/platformsupport/clipboard/clipboard.pro", "macos: LIBS_PRIVATE += -framework AppKit", "macos: LIBS_PRIVATE += -framework AppKit\nios {\nLIBS += -framework MobileCoreServices\n}")
-
         #tools.replace_in_file("qt5/qtbase/src/corelib/tools/qsimd_p.h", "#    include <x86intrin.h>", "# if !defined(__EMSCRIPTEN__)\n#  include <x86intrin.h>\n# endif")
 
         tools.patch(patch_file="fix_ios_appstore.diff", base_path="qt5")
-        # Do not use subdirectories in plugin folder since this is not App Store compatible
-        tools.replace_in_file("qt5/qtdeclarative/src/3rdparty/masm/wtf/OSAllocatorPosix.cpp", "#include <sys/syscall.h>", "#include <sys/syscall.h>\n#include <linux/limits.h>")
 
-        if self.settings.os == "Android":
-            tools.patch(patch_file="android.patch", base_path="qt5")
+        #tools.patch(patch_file="QTBUG-30467.patch", base_path="qt5")
+        tools.patch(patch_file="android.patch", base_path="qt5")
 
         # fix error with mersenne_twisters
         # https://codereview.qt-project.org/c/qt/qtbase/+/245425
         # should not needed in Qt >= 5.12.1
-        tools.patch(patch_file="fix_qqmlthread_assertion_dbg.diff", base_path="qt5/qtdeclarative/")
+        #tools.patch(patch_file="fix_qqmlthread_assertion_dbg.diff", base_path="qt5/qtdeclarative/")
 
     def _toUnixPath(self, paths):
         if self.settings.os == "Android" and tools.os_info.is_windows:
@@ -185,7 +188,7 @@ class QtConan(ConanFile):
 
     def build(self):
         args = ["-v", "-opensource", "-confirm-license", "-nomake examples", "-nomake tests",
-                "-extprefix %s" % self._toUnixPath(self.package_folder)]
+                "-prefix %s" % self._toUnixPath(self.package_folder)]
         if not self.options.GUI:
             args.append("-no-gui")
         if not self.options.widgets:
@@ -224,8 +227,13 @@ class QtConan(ConanFile):
             args += ["-I %s" % i for i in self._toUnixPath(self.deps_cpp_info["OpenSSL"].include_paths)]
             libs = self._toUnixPath(self.deps_cpp_info["OpenSSL"].libs)
             lib_paths = self._toUnixPath(self.deps_cpp_info["OpenSSL"].lib_paths)
+            args += ["OPENSSL_PREFIX=" + self._toUnixPath(self.deps_cpp_info["OpenSSL"].rootpath)]
+            args += ["OPENSSL_LIBS=\"" + " ".join(["-l"+i for i in libs]) + "\""]
+            args += ["OPENSSL_LIBS_DEBUG=\"" + " ".join(["-l"+i for i in libs]) + "\""]
+            args += ["OPENSSL_LIBS_RELEASE=\"" + " ".join(["-l"+i for i in libs]) + "\""]
             os.environ["OPENSSL_LIBS"] = " ".join(["-L"+i for i in lib_paths] + ["-l"+i for i in libs])
             os.environ["OPENSSL_LIBS_DEBUG"] = " ".join(["-L"+i for i in lib_paths] + ["-l"+i for i in libs])
+            os.environ["OPENSSL_LIBS_RELEASE"] = " ".join(["-L"+i for i in lib_paths] + ["-l"+i for i in libs])
             os.environ["LD_RUN_PATH"] = " ".join([i+":" for i in lib_paths]) # Needed for secondary (indirect) dependency resolving of gnu ld
             os.environ["LD_LIBRARY_PATH"] = " ".join([i+":" for i in lib_paths]) # Needed for secondary (indirect) dependency resolving of gnu ld
 
@@ -286,7 +294,7 @@ class QtConan(ConanFile):
         if self.settings.os == "Linux":
             args.append("-no-use-gold-linker") # QTBUG-65071
             if self.options.GUI:
-                args.append("-qt-xcb")
+                args.append("-xcb")
             if self.settings.arch == "x86":
                 args += ["-xplatform linux-g++-32"]
             elif self.settings.arch == "armv6":
@@ -312,6 +320,7 @@ class QtConan(ConanFile):
         #args += ["-sysroot " + tools.unix_path(self.deps_env_info['android-ndk'].SYSROOT)]
         if self.settings.build_type == "Debug":
             args += ["-no-framework"]
+            args += ["-debug-and-release"] # WORKAROUND: See QTBUG-71990
 
         with tools.environment_append({"MAKEFLAGS":"-j %d" % tools.cpu_count()}):
             self.output.info("Using '%d' threads" % tools.cpu_count())
@@ -333,7 +342,7 @@ class QtConan(ConanFile):
         args += ["-android-ndk " + self._toUnixPath(self.deps_env_info['android-ndk'].NDK_ROOT)]
         args += ["-android-sdk " + self._toUnixPath(self.deps_env_info['android-sdk'].SDK_ROOT)]
         args += ["-android-ndk-host %s-%s" % (str(self.settings.os_build).lower(), str(self.settings.arch_build))]
-        args += ["-android-toolchain-version " + self.deps_env_info['android-ndk'].TOOLCHAIN_VERSION]
+        #args += ["-android-toolchain-version " + self.deps_env_info['android-ndk'].TOOLCHAIN_VERSION]
         #args += ["-sysroot " + tools.unix_path(self.deps_env_info['android-ndk'].SYSROOT)]
         args += ["-device-option CROSS_COMPILE=" + self.deps_env_info['android-ndk'].CHOST + "-"]
 
@@ -381,26 +390,32 @@ class QtConan(ConanFile):
     def package(self):
         self.copy("bin/qt.conf", src="qtbase")
         if self.settings.os == "Android":
-            # One qt cmake file contains hardcoded paths. We have to remove those. Otherwise this arifact wouldn't be relocatable
+            #QTBUG-87863
+            tools.patch(base_path=os.path.join(self.package_folder, "lib", "cmake", "Qt5Core"), patch_file=os.path.join(self.source_folder, "QTBUG-87863.patch"))
+            # One qt cmake file contains hardcoded paths. We have to remove those
             file_name = os.path.join(self.package_folder, "lib", "cmake", "Qt5Gui", "Qt5GuiConfigExtras.cmake")
-            fin = open(file_name, "rt")
-            lines = fin.readlines()
-            fin.close()
-            fin = open(file_name, "wt")
-            pattern = re.compile(r'_qt5gui_find_extra_libs\((\S+)\s\"([^\"]+)\".+\)')
-            for line in lines:
-                match = pattern.search(line)
-                if match and len(match.groups()) == 2 and os.path.isabs(match.group(2)):
-                    lib_name = os.path.basename(match.group(2))[:-2]
-                    lib_name = os.path.splitext(lib_name)[0]
-                    other_lib_name = lib_name.replace("lib", "")
-                    replace = '_qt5gui_find_extra_libs(%s "%s;%s" "${ANDROID_SYSTEM_LIBRARY_PATH}/usr/lib" "")' % (
-                    match.group(1), lib_name, other_lib_name)
-                    line = line[:match.start(0)] + replace + line[match.end(0):]
-                    fin.write(line)
-                else:
-                    fin.write(line)
-            fin.close()
+            try:
+                fin = open(file_name, "rt")
+                lines = fin.readlines()
+                fin.close()
+                fin = open(file_name, "wt")
+                pattern = re.compile(r'_qt5gui_find_extra_libs\((\S+)\s\"([^\"]+)\".+\)')
+                for line in lines:
+                    match = pattern.search(line)
+                    if match and len(match.groups()) == 2 and os.path.isabs(match.group(2)):
+                        lib_name = os.path.basename(match.group(2))[:-2]
+                        lib_name = os.path.splitext(lib_name)[0]
+                        other_lib_name = lib_name.replace("lib", "")
+                        replace = '_qt5gui_find_extra_libs(%s "%s;%s" "${ANDROID_SYSTEM_LIBRARY_PATH}/usr/lib" "")' % (
+                        match.group(1), lib_name, other_lib_name)
+                        line = line[:match.start(0)] + replace + line[match.end(0):]
+                        fin.write(line)
+                    else:
+                        fin.write(line)
+                fin.close()
+            except FileNotFoundError:
+                pass
+            
             if tools.os_info.is_windows:
                 self.copy("libgcc_s_seh-1.dll", dst="bin", src=os.path.join(self.deps_env_info['msys2'].MSYS_ROOT, "mingw64", "bin"))
                 self.copy("libstdc++-6.dll", dst="bin", src=os.path.join(self.deps_env_info['msys2'].MSYS_ROOT, "mingw64", "bin"))
@@ -416,5 +431,6 @@ class QtConan(ConanFile):
         self.info.include_build_settings()
 
     def package_info(self):
-        self.env_info.PATH.append(os.path.join(self.package_folder, "bin"))
-        self.env_info.PATH.append(os.path.join(self.package_folder, "qttools", "bin"))
+        self.env_info.path.append(os.path.join(self.package_folder, "bin"))
+        self.env_info.path.append(os.path.join(self.package_folder, "qttools", "bin"))
+        self.env_info.CMAKE_PREFIX_PATH.append(self.package_folder)

@@ -1,0 +1,28 @@
+--- Qt5AndroidSupport.cmake	2021-03-11 12:23:44.335755100 +0100
++++ Qt5AndroidSupportMod.cmake	2021-03-11 12:22:06.510504800 +0100
+@@ -123,6 +123,7 @@
+     set(android_deploy_qt_platform "--android-platform ${ANDROID_SDK_PLATFORM}")
+   endif()
+ 
++if (NOT TARGET apk)
+   add_custom_target(apk
+     COMMAND ${CMAKE_COMMAND} -E env JAVA_HOME=${JAVA_HOME} ${ANDROID_DEPLOY_QT}
+        --input "${CMAKE_BINARY_DIR}/android_deployment_settings.json"
+@@ -131,7 +132,9 @@
+        ${android_deploy_qt_platform}
+        ${android_deploy_qt_jdk}
+     VERBATIM)
++endif()
+ 
++if (NOT TARGET aab)
+   add_custom_target(aab
+     COMMAND ${CMAKE_COMMAND} -E env JAVA_HOME=${JAVA_HOME} ${ANDROID_DEPLOY_QT}
+       --input "${CMAKE_BINARY_DIR}/android_deployment_settings.json"
+@@ -141,6 +144,7 @@
+       ${android_deploy_qt_platform}
+       ${android_deploy_qt_jdk}
+    VERBATIM)
++endif()
+ 
+   include(ExternalProject)
+   macro (setup_library library_name android_abi)

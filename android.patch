@@ -20,7 +20,7 @@ diff --git a/qtmultimedia/src/plugins/android/src/wrappers/jni/androidcamera.cpp
 index 24b2ebd..b4a9780 100644
 --- a/qtmultimedia/src/plugins/android/src/wrappers/jni/androidcamera.cpp
 +++ b/qtmultimedia/src/plugins/android/src/wrappers/jni/androidcamera.cpp
-@@ -210,6 +210,10 @@ public:
+@@ -207,6 +207,10 @@ public:
      Q_INVOKABLE int getZoom();
      Q_INVOKABLE void setZoom(int value);
  
@@ -56,13 +56,13 @@ index 24b2ebd..b4a9780 100644
  QStringList AndroidCamera::getSupportedFlashModes()
  {
      Q_D(AndroidCamera);
-@@ -1178,6 +1200,37 @@ void AndroidCameraPrivate::setZoom(int value)
+@@ -1172,6 +1194,37 @@ void AndroidCameraPrivate::setZoom(int value)
      applyParameters();
  }
  
 +bool AndroidCameraPrivate::isVideoStabilizationSupported()
 +{
-+    QMutexLocker parametersLocker(&m_parametersMutex);
++    const std::lock_guard<QRecursiveMutex> locker(m_parametersMutex);
 +
 +    if (!m_parameters.isValid())
 +        return false;
@@ -72,7 +72,7 @@ index 24b2ebd..b4a9780 100644
 +
 +bool AndroidCameraPrivate::getVideoStabilization()
 +{
-+    QMutexLocker parametersLocker(&m_parametersMutex);
++    const std::lock_guard<QRecursiveMutex> locker(m_parametersMutex);
 +
 +    if (!m_parameters.isValid())
 +        return 0;
@@ -82,7 +82,7 @@ index 24b2ebd..b4a9780 100644
 +
 +void AndroidCameraPrivate::setVideoStabilization(bool toggle)
 +{
-+    QMutexLocker parametersLocker(&m_parametersMutex);
++    const std::lock_guard<QRecursiveMutex> locker(m_parametersMutex);
 +
 +    if (!m_parameters.isValid())
 +        return;
@@ -93,7 +93,8 @@ index 24b2ebd..b4a9780 100644
 +
  QString AndroidCameraPrivate::getFlashMode()
  {
-     QMutexLocker parametersLocker(&m_parametersMutex);
+     const std::lock_guard<QRecursiveMutex> locker(m_parametersMutex);
+
 diff --git a/qtmultimedia/src/plugins/android/src/wrappers/jni/androidcamera.h b/qtmultimedia/src/plugins/android/src/wrappers/jni/androidcamera.h
 index 7d00f80..1e10c29 100644
 --- a/qtmultimedia/src/plugins/android/src/wrappers/jni/androidcamera.h

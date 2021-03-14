@@ -1,3 +1,211 @@
+diff --git a/qtbase/mkspecs/features/data/cmake/Qt5PluginTarget.cmake.in b/qtbase/mkspecs/features/data/cmake/Qt5PluginTarget.cmake.in
+index b550a52..5e84bb7 100644
+--- a/qtbase/mkspecs/features/data/cmake/Qt5PluginTarget.cmake.in
++++ b/qtbase/mkspecs/features/data/cmake/Qt5PluginTarget.cmake.in
+@@ -17,33 +17,41 @@ endforeach()
+
+ !!IF !isEmpty(CMAKE_RELEASE_TYPE)
+ !!IF isEmpty(CMAKE_LIB_DIR_IS_ABSOLUTE)
+-_qt5_$${CMAKE_MODULE_NAME}_process_prl_file(
+-    \"${_qt5$${CMAKE_MODULE_NAME}_install_prefix}/$${CMAKE_PLUGIN_DIR}$${CMAKE_PRL_FILE_LOCATION_RELEASE}\" RELEASE
+-    _Qt5$${CMAKE_PLUGIN_NAME}_STATIC_RELEASE_LIB_DEPENDENCIES
+-    _Qt5$${CMAKE_PLUGIN_NAME}_STATIC_RELEASE_LINK_FLAGS
+-)
++if(NOT IOS)
++    _qt5_$${CMAKE_MODULE_NAME}_process_prl_file(
++        \"${_qt5$${CMAKE_MODULE_NAME}_install_prefix}/$${CMAKE_PLUGIN_DIR}$${CMAKE_PRL_FILE_LOCATION_RELEASE}\" RELEASE
++        _Qt5$${CMAKE_PLUGIN_NAME}_STATIC_RELEASE_LIB_DEPENDENCIES
++        _Qt5$${CMAKE_PLUGIN_NAME}_STATIC_RELEASE_LINK_FLAGS
++    )
++endif()
+ !!ELSE
+-_qt5_$${CMAKE_MODULE_NAME}_process_prl_file(
+-    \"$${CMAKE_PLUGIN_DIR}$${CMAKE_PRL_FILE_LOCATION_RELEASE}\" RELEASE
+-    _Qt5$${CMAKE_PLUGIN_NAME}_STATIC_RELEASE_LIB_DEPENDENCIES
+-    _Qt5$${CMAKE_PLUGIN_NAME}_STATIC_RELEASE_LINK_FLAGS
+-)
++if(NOT IOS)
++    _qt5_$${CMAKE_MODULE_NAME}_process_prl_file(
++        \"$${CMAKE_PLUGIN_DIR}$${CMAKE_PRL_FILE_LOCATION_RELEASE}\" RELEASE
++        _Qt5$${CMAKE_PLUGIN_NAME}_STATIC_RELEASE_LIB_DEPENDENCIES
++        _Qt5$${CMAKE_PLUGIN_NAME}_STATIC_RELEASE_LINK_FLAGS
++    )
++endif()
+ !!ENDIF
+ !!ENDIF
+
+ !!IF !isEmpty(CMAKE_DEBUG_TYPE)
+ !!IF isEmpty(CMAKE_LIB_DIR_IS_ABSOLUTE)
+-_qt5_$${CMAKE_MODULE_NAME}_process_prl_file(
+-    \"${_qt5$${CMAKE_MODULE_NAME}_install_prefix}/$${CMAKE_PLUGIN_DIR}$${CMAKE_PRL_FILE_LOCATION_DEBUG}\" DEBUG
+-    _Qt5$${CMAKE_PLUGIN_NAME}_STATIC_DEBUG_LIB_DEPENDENCIES
+-    _Qt5$${CMAKE_PLUGIN_NAME}_STATIC_DEBUG_LINK_FLAGS
+-)
++if(NOT IOS)
++    _qt5_$${CMAKE_MODULE_NAME}_process_prl_file(
++        \"${_qt5$${CMAKE_MODULE_NAME}_install_prefix}/$${CMAKE_PLUGIN_DIR}$${CMAKE_PRL_FILE_LOCATION_DEBUG}\" DEBUG
++        _Qt5$${CMAKE_PLUGIN_NAME}_STATIC_DEBUG_LIB_DEPENDENCIES
++        _Qt5$${CMAKE_PLUGIN_NAME}_STATIC_DEBUG_LINK_FLAGS
++    )
++endif()
+ !!ELSE
+-_qt5_$${CMAKE_MODULE_NAME}_process_prl_file(
+-    \"$${CMAKE_PLUGIN_DIR}$${CMAKE_PRL_FILE_LOCATION_DEBUG}\" DEBUG
+-    _Qt5$${CMAKE_PLUGIN_NAME}_STATIC_DEBUG_LIB_DEPENDENCIES
+-    _Qt5$${CMAKE_PLUGIN_NAME}_STATIC_DEBUG_LINK_FLAGS
+-)
++if(NOT IOS)
++    _qt5_$${CMAKE_MODULE_NAME}_process_prl_file(
++        \"$${CMAKE_PLUGIN_DIR}$${CMAKE_PRL_FILE_LOCATION_DEBUG}\" DEBUG
++        _Qt5$${CMAKE_PLUGIN_NAME}_STATIC_DEBUG_LIB_DEPENDENCIES
++        _Qt5$${CMAKE_PLUGIN_NAME}_STATIC_DEBUG_LINK_FLAGS
++    )
++endif()
+ !!ENDIF
+ !!ENDIF
+
+diff --git a/qtbase/src/plugins/platforms/ios/qiostextresponder.mm b/qtbase/src/plugins/platforms/ios/qiostextresponder.mm
+index 19e476a..b4b9db1 100644
+--- a/qtbase/src/plugins/platforms/ios/qiostextresponder.mm
++++ b/qtbase/src/plugins/platforms/ios/qiostextresponder.mm
+@@ -550,6 +550,8 @@
+         key = Qt::Key_Up;
+     else if (keyCommand.input == UIKeyInputDownArrow)
+         key = Qt::Key_Down;
++    else if ([keyCommand.input isEqualToString:@"\t"])
++        key = Qt::Key_Tab;
+     else
+         Q_UNREACHABLE();
+
+@@ -591,6 +593,7 @@
+         [self addKeyCommandsToArray:array key:UIKeyInputDownArrow];
+         [self addKeyCommandsToArray:array key:UIKeyInputLeftArrow];
+         [self addKeyCommandsToArray:array key:UIKeyInputRightArrow];
++        [self addKeyCommandsToArray:array key:@"\t"];
+     });
+
+     return array;
+@@ -985,6 +988,10 @@
+             [self resignFirstResponder];
+
+         return;
++    } else if ([text isEqualToString:@"\t"]) {
++        // TODO: How to recognize Shift + Tab?
++        [self sendKeyPressRelease:Qt::Key_Tab modifiers:Qt::NoModifier];
++        return;
+     }
+
+     QInputMethodEvent e;
+diff --git a/qtmultimedia/src/plugins/avfoundation/camera/avfcamerautility.mm b/qtmultimedia/src/plugins/avfoundation/camera/avfcamerautility.mm
+index b2460e7..7e8e6f4 100644
+--- a/qtmultimedia/src/plugins/avfoundation/camera/avfcamerautility.mm
++++ b/qtmultimedia/src/plugins/avfoundation/camera/avfcamerautility.mm
+@@ -149,6 +149,8 @@ QVector<AVCaptureDeviceFormat *> qt_unique_device_formats(AVCaptureDevice *captu
+         return formats;
+
+     std::sort(formats.begin(), formats.end(), ByResolution<std::less>());
++
++    auto originalFormats = formats;
+
+     QSize size(qt_device_format_resolution(formats[0]));
+     FourCharCode codec = CMVideoFormatDescriptionGetCodecType(formats[0].formatDescription);
+@@ -168,6 +170,26 @@ QVector<AVCaptureDeviceFormat *> qt_unique_device_formats(AVCaptureDevice *captu
+     }
+     formats.resize(last + 1);
+
++    // Check if there are configurations which are similar but allow higher frame rates
++    for (int i = 0; i < formats.size(); ++i) {
++        for (int j = 0; j < originalFormats.size(); ++j) {
++            const QSize iSize(qt_device_format_resolution(formats[i]));
++            const QSize jSize(qt_device_format_resolution(originalFormats[j]));
++            if (iSize == jSize) {
++                const FourCharCode iCodec = CMVideoFormatDescriptionGetCodecType(formats[i].formatDescription);
++                const FourCharCode jCodec = CMVideoFormatDescriptionGetCodecType(originalFormats[j].formatDescription);
++                if (iCodec == jCodec) {
++                    if (originalFormats[j].videoSupportedFrameRateRanges.count > 0 && formats[i].videoSupportedFrameRateRanges.count > 0) {
++                        if (originalFormats[j].videoSupportedFrameRateRanges[0].maxFrameRate > formats[i].videoSupportedFrameRateRanges[0].maxFrameRate) {
++                            formats[i] = originalFormats[j];
++                        }
++                    }
++                }
++            }
++        }
++
++    }
++
+     return formats;
+ }
+
+diff --git a/qtmultimedia/src/plugins/avfoundation/camera/avfcameraviewfindersettingscontrol.mm b/qtmultimedia/src/plugins/avfoundation/camera/avfcameraviewfindersettingscontrol.mm
+index dd0393f..07dca72 100644
+--- a/qtmultimedia/src/plugins/avfoundation/camera/avfcameraviewfindersettingscontrol.mm
++++ b/qtmultimedia/src/plugins/avfoundation/camera/avfcameraviewfindersettingscontrol.mm
+@@ -374,6 +374,19 @@ bool AVFCameraViewfinderSettingsControl2::applySettings(const QCameraViewfinderS
+     if (!captureDevice)
+         return false;
+
++#ifdef Q_OS_IOS
++         AVCaptureVideoStabilizationMode stabilizationMode = AVCaptureVideoStabilizationModeStandard;
++         if ([captureDevice.activeFormat isVideoStabilizationModeSupported:stabilizationMode]) {
++                         auto connection = videoConnection();
++                         if (connection) {
++                                         if ([connection activeVideoStabilizationMode] != stabilizationMode) {
++                                                         qWarning() << "Setting video stabilization mode to " << stabilizationMode;
++                                                         [connection setPreferredVideoStabilizationMode:stabilizationMode];
++                                         }
++                         }
++         }
++#endif
++
+     bool activeFormatChanged = false;
+
+     AVCaptureDeviceFormat *match = findBestFormatMatch(settings);
+diff --git a/qtbase/src/plugins/platforms/ios/qiosinputcontext.mm b/qtbase/src/plugins/platforms/ios/qiosinputcontext.mm
+index d2229df..9575062 100644
+--- a/qtbase/src/plugins/platforms/ios/qiosinputcontext.mm
++++ b/qtbase/src/plugins/platforms/ios/qiosinputcontext.mm
+@@ -472,6 +472,9 @@ UIView *QIOSInputContext::scrollableRootView()
+
+ void QIOSInputContext::scrollToCursor()
+ {
++       // HACK: The scrolling is done by ourselves.
++       return;
++
+     if (!isQtApplication())
+         return;
+
+diff --git a/qtdeclarative/src/quick/items/qquickmousearea.cpp b/qtdeclarative/src/quick/items/qquickmousearea.cpp
+index 5124802..a5d3dba 100644
+--- a/qtdeclarative/src/quick/items/qquickmousearea.cpp
++++ b/qtdeclarative/src/quick/items/qquickmousearea.cpp
+@@ -1209,7 +1209,13 @@ bool QQuickMouseArea::setPressed(Qt::MouseButton button, bool p, Qt::MouseEventS
+     bool isclick = wasPressed && p == false && dragged == false && d->hovered == true;
+     Qt::MouseButtons oldPressed = d->pressed;
+
++#ifdef Q_OS_IOS
++    // WORKAROUND: Sometimes there is a mouse release event missing on iOS so that the mouse area will stay in pressed state forever.
++    // This will set the state no matter which state the mouse area had before (let's hope that the performance impact will be rather low).
++    //if (wasPressed != p) {
++#else
+     if (wasPressed != p) {
++#endif
+         QQuickMouseEvent &me = d->quickMouseEvent;
+         me.reset(d->lastPos.x(), d->lastPos.y(), d->lastButton, d->lastButtons, d->lastModifiers, isclick, d->longPress, d->lastFlags);
+         me.setSource(source);
+@@ -1249,8 +1255,13 @@ bool QQuickMouseArea::setPressed(Qt::MouseButton button, bool p, Qt::MouseEventS
+         }
+
+         return me.isAccepted();
++#ifdef Q_OS_IOS
++    //}
++    //return false;
++#else
+     }
+     return false;
++#endif
+ }
+
+
 diff --git a/qtmultimedia/src/plugins/avfoundation/camera/avfmediarecordercontrol_ios.mm b/qtmultimedia/src/plugins/avfoundation/camera/avfmediarecordercontrol_ios.mm
 index 0b31bd0..cf9d34b 100644
 --- a/qtmultimedia/src/plugins/avfoundation/camera/avfmediarecordercontrol_ios.mm
@@ -15,7 +223,7 @@ diff --git a/qtmultimedia/src/plugins/avfoundation/camera/avfmediaassetwriter.mm
 index 5a1257f..dd04828 100644
 --- a/qtmultimedia/src/plugins/avfoundation/camera/avfmediaassetwriter.mm
 +++ b/qtmultimedia/src/plugins/avfoundation/camera/avfmediaassetwriter.mm
-@@ -183,7 +183,7 @@ enum WriterState
+@@ -220,7 +220,7 @@ using AVFAtomicInt64 = QAtomicInteger<qint64>;
 
      m_state.storeRelease(WriterStateActive);
 
@@ -24,11 +232,11 @@ index 5a1257f..dd04828 100644
      AVCaptureSession *session = m_service->session()->captureSession();
      if (!session.running)
          [session startRunning];
-@@ -268,6 +268,7 @@ enum WriterState
+@@ -305,6 +305,7 @@ using AVFAtomicInt64 = QAtomicInteger<qint64>;
      m_durationInMs.storeRelease(0);
      m_startTime = CMSampleBufferGetPresentationTimeStamp(sampleBuffer);
      m_lastTimeStamp = m_startTime;
-+    [m_assetWriter startWriting];
++       [m_assetWriter startWriting];
      [m_assetWriter startSessionAtSourceTime:m_startTime];
      m_setStartTime = false;
  }
@@ -51,61 +259,48 @@ index bbb16e7..7c78574 100644
      AVFPSRange currentFps = qt_current_framerates(device, connection);
      const bool needFpsChange = m_requestedSettings.frameRate() > 0
                                 && m_requestedSettings.frameRate() != currentFps.second;
-diff --git a/qtmultimedia/src/plugins/avfoundation/camera/avfcamerasession.mm b/qtmultimedia/src/plugins/avfoundation/camera/avfcamerasession.mm
-index 8e3436d..0b7c0e9 100644
---- a/qtmultimedia/src/plugins/avfoundation/camera/avfcamerasession.mm
-+++ b/qtmultimedia/src/plugins/avfoundation/camera/avfcamerasession.mm
-@@ -234,7 +234,7 @@ void AVFCameraSession::updateCameraDevices()
-             break;
-         case AVCaptureDevicePositionFront:
-             info.position = QCamera::FrontFace;
--            info.orientation = 90;
-+            info.orientation = 270;
-             break;
-         default:
-             info.position = QCamera::UnspecifiedPosition;
 diff --git a/qtbase/src/corelib/plugin/qfactoryloader.cpp b/qtbase/src/corelib/plugin/qfactoryloader.cpp
 index 35c64180..af2eb982 100644
 --- a/qtbase/src/corelib/plugin/qfactoryloader.cpp
 +++ b/qtbase/src/corelib/plugin/qfactoryloader.cpp
-@@ -193,7 +193,11 @@ void QFactoryLoader::update()
+@@ -196,8 +196,10 @@ void QFactoryLoader::update()
              continue;
          d->loadedPaths << pluginDir;
 
-+#if defined Q_OS_IOS && defined QT_NO_DEBUG
-+        QString path = pluginDir;
-+#else
+-#ifdef Q_OS_ANDROID
++#if defined Q_OS_ANDROID
+         QString path = pluginDir;
++#elif defined Q_OS_IOS && defined QT_NO_DEBUG
++               QString path = pluginDir;
+ #else
          QString path = pluginDir + d->suffix;
-+#endif
-
-         if (qt_debug_component())
-             qDebug() << "QFactoryLoader::QFactoryLoader() checking directory path" << path << "...";
-@@ -205,7 +209,11 @@ void QFactoryLoader::update()
- #ifdef Q_OS_WIN
-                     QStringList(QStringLiteral("*.dll")),
  #endif
-+#ifdef Q_OS_IOS
-+                    QDir::Files | QDir::Dirs);
+@@ -214,7 +216,11 @@ void QFactoryLoader::update()
+ #elif defined(Q_OS_ANDROID)
+                     QStringList(QLatin1String("libplugins_%1_*.so").arg(d->suffix)),
+ #endif
++#if defined(Q_OS_IOS)
++                                       QDir::Files | QDir::Dirs);
 +#else
                      QDir::Files);
 +#endif
-         QLibraryPrivate *library = 0;
+         QLibraryPrivate *library = nullptr;
 
          for (int j = 0; j < plugins.count(); ++j) {
-@@ -230,6 +238,18 @@ void QFactoryLoader::update()
+@@ -239,6 +245,18 @@ void QFactoryLoader::update()
                  continue;
              }
  #endif
 +
 +#ifdef Q_OS_IOS
-+			if(fileName.endsWith(".framework")) {
-+				QFileInfo fileInfo(fileName);
-+				fileName.append("/" + fileInfo.baseName());
-+				fileInfo = QFileInfo(fileName);
-+				if(!fileInfo.exists()) {
-+					continue;
-+				}
-+			}
++                       if(fileName.endsWith(".framework")) {
++                               QFileInfo fileInfo(fileName);
++                               fileName.append("/" + fileInfo.baseName());
++                               fileInfo = QFileInfo(fileName);
++                               if(!fileInfo.exists()) {
++                                       continue;
++                               }
++                       }
 +#endif
 +
              if (qt_debug_component()) {
@@ -165,25 +360,11 @@ index 916f6b0c..882288c2 100644
 +}
 
  load(qt_module)
-diff --git a/qtbase/src/plugins/platforms/ios/qioseventdispatcher.mm b/qtbase/src/plugins/platforms/ios/qioseventdispatcher.mm
-index 776343c5..c8edc011 100644
---- a/qtbase/src/plugins/platforms/ios/qioseventdispatcher.mm
-+++ b/qtbase/src/plugins/platforms/ios/qioseventdispatcher.mm
-@@ -109,7 +109,8 @@ static const long kPageSize = sysconf(_SC_PAGESIZE);
-     Note: the diagram does not reflect alignment issues.
- */
-
--namespace
-+Q_LOGGING_CATEGORY(lcEventDispatcher, "qt.eventdispatcher");
-+ namespace
- {
-     struct Stack
-     {
 diff --git a/qtdeclarative/src/qml/qml/qqmlimport.cpp b/qtdeclarative/src/qml/qml/qqmlimport.cpp
-index 5a136447..07d2cc04 100644
+index ba8dce4..b602185 100644
 --- a/qtdeclarative/src/qml/qml/qqmlimport.cpp
 +++ b/qtdeclarative/src/qml/qml/qqmlimport.cpp
-@@ -1907,6 +1907,9 @@ QString QQmlImportDatabase::resolvePlugin(QQmlTypeLoader *typeLoader,
+@@ -2027,6 +2027,9 @@ QString QQmlImportDatabase::resolvePlugin(QQmlTypeLoader *typeLoader,
          QLatin1String("_debug.dylib"), // try a qmake-style debug build first
          QLatin1String(".dylib"),
  # else
@@ -194,22 +375,22 @@ index 5a136447..07d2cc04 100644
          QLatin1String("_debug.dylib"), // try a qmake-style debug build after
  # endif
 diff --git a/qtdeclarative/src/qml/qml/qqmltypeloader.cpp b/qtdeclarative/src/qml/qml/qqmltypeloader.cpp
-index df6a8f15..b58c3beb 100644
+index 9e5bc0b..009a88e 100644
 --- a/qtdeclarative/src/qml/qml/qqmltypeloader.cpp
 +++ b/qtdeclarative/src/qml/qml/qqmltypeloader.cpp
-@@ -1854,6 +1854,17 @@ QString QQmlTypeLoader::absoluteFilePath(const QString &path)
+@@ -976,6 +976,17 @@ QString QQmlTypeLoader::absoluteFilePath(const QString &path)
      if (absoluteFilePath.length() > 2 && absoluteFilePath.at(0) != QLatin1Char('/') && absoluteFilePath.at(1) != QLatin1Char(':'))
          absoluteFilePath = QFileInfo(absoluteFilePath).absoluteFilePath();
 
 +#if defined(Q_OS_IOS)
-+	if(absoluteFilePath.endsWith(QLatin1String(".framework"))) {
-+		QFileInfo fileInfo(absoluteFilePath);
-+		absoluteFilePath.append(QLatin1Char('/') + fileInfo.baseName());
-+		fileInfo = QFileInfo(absoluteFilePath);
-+		if(!fileInfo.exists()) {
-+			return QString();
-+		}
-+	}
++    if(absoluteFilePath.endsWith(QLatin1String(".framework"))) {
++        QFileInfo fileInfo(absoluteFilePath);
++        absoluteFilePath.append(QLatin1Char('/') + fileInfo.baseName());
++        fileInfo = QFileInfo(absoluteFilePath);
++        if(!fileInfo.exists()) {
++            return QString();
++        }
++    }
 +#endif
 +
      return absoluteFilePath;
@@ -228,4 +409,4 @@ index 04a5fd59..6a8b7829 100644
 +}
  macx:CONFIG -= app_bundle
 
- QMAKE_TARGET_DESCRIPTION = QML Time
+ CONFIG += qmltypes
