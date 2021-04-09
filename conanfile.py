@@ -340,6 +340,8 @@ class QtConan(ConanFile):
             self.run(self._toUnixPath("%s/qt5/configure " % self.source_folder) + " ".join(args), win_bash=tools.os_info.is_windows)
             if tools.os_info.is_windows:
                 self.run("make", ignore_errors=True, win_bash=tools.os_info.is_windows) # Workaround MSYS2 qmltyperegistrar.exe: Bad address
+                self.run("make", ignore_errors=True, win_bash=tools.os_info.is_windows)
+                self.run("make", ignore_errors=True, win_bash=tools.os_info.is_windows)
             self.run("make", win_bash=tools.os_info.is_windows)
             self.run("make install", win_bash=tools.os_info.is_windows)
 
