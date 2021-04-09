@@ -216,7 +216,7 @@ class QtConan(ConanFile):
             args += ["-I %s" % i for i in self._toUnixPath(self.deps_cpp_info["openssl"].include_paths)]
             libs = self._toUnixPath(self.deps_cpp_info["openssl"].libs)
             lib_paths = self._toUnixPath(self.deps_cpp_info["openssl"].lib_paths)
-            args += ["OPENSSL_PREFIX=" + self._toUnixPath(self.deps_cpp_info["OpenSSL"].rootpath)]
+            args += ["OPENSSL_PREFIX=" + self._toUnixPath(self.deps_cpp_info["openssl"].rootpath)]
             args += ["OPENSSL_LIBS=\"" + " ".join(["-l"+i for i in libs]) + "\""]
             args += ["OPENSSL_LIBS_DEBUG=\"" + " ".join(["-l"+i for i in libs]) + "\""]
             args += ["OPENSSL_LIBS_RELEASE=\"" + " ".join(["-l"+i for i in libs]) + "\""]
