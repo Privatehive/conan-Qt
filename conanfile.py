@@ -106,7 +106,7 @@ class QtConan(ConanFile):
                 elif self.settings.arch == "x86_64":
                     arch_suffix = ':amd64'
                 if self.options.GUI:
-                    pack_names.extend(["libxcb1-dev", "libx11-dev", "libfontconfig1-dev", "libfreetype6-dev", "libxext-dev", "libxfixes-dev", "libxi-dev", "libxrender-dev", "libx11-xcb-dev", "libxcb-glx0-dev", "libxkbcommon-dev", "libxkbcommon-x11-dev"])
+                    pack_names.extend(["libxcb1-dev", "libx11-dev", "libfontconfig1-dev", "libfreetype6-dev", "libxext-dev", "libxfixes-dev", "libxi-dev", "libxrender-dev", "libx11-xcb-dev", "libxcb-glx0-dev", "libxkbcommon-dev", "libxkbcommon-x11-dev", "libxcb-icccm4-dev"])
                     if self.options.opengl == "desktop":
                         pack_names.append("libgl1-mesa-dev")
                 if self.options.qtmultimedia:
