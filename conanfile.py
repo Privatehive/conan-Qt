@@ -40,7 +40,7 @@ class QtConan(ConanFile):
     homepage = "https://www.qt.io/"
     license = "http://doc.qt.io/qt-5/lgpl.html"
     exports = ["LICENSE.md", "qtmodules.conf"]
-    exports_sources = ["CMakeLists.txt", "fix_qqmlthread_assertion_dbg.diff", "QTBUG-87863.patch"]
+    exports_sources = ["CMakeLists.txt", "fix_qqmlthread_assertion_dbg.diff", "QTBUG-87863.patch", "QTBUG-86785.patch"]
     settings = "os", "arch", "compiler", "build_type"
 
     options = dict({
@@ -106,7 +106,7 @@ class QtConan(ConanFile):
                 elif self.settings.arch == "x86_64":
                     arch_suffix = ':amd64'
                 if self.options.GUI:
-                    pack_names.extend(["libxcb1-dev", "libx11-dev", "libfontconfig1-dev", "libfreetype6-dev", "libxext-dev", "libxfixes-dev", "libxi-dev", "libxrender-dev", "libx11-xcb-dev", "libxcb-glx0-dev", "libxkbcommon-dev", "libxkbcommon-x11-dev", "libxcb-icccm4-dev", "libxcb-util-dev", "libxcb-keysyms1-dev", "libxcb-image0-dev", "libxcb-shm0-dev", "libxcb-sync-dev", "libxcb-xfixes0-dev", "libxcb-shape0-dev", "libxcb-randr0-dev", "libxcb-render0-dev", "libxcb-xinerama0-dev"])
+                    pack_names.extend(["libxcb1-dev", "libx11-dev", "libfontconfig1-dev", "libfreetype6-dev", "libxext-dev", "libxfixes-dev", "libxi-dev", "libxrender-dev", "libx11-xcb-dev", "libxcb-glx0-dev", "libxkbcommon-dev", "libxkbcommon-x11-dev", "libxcb-icccm4-dev", "libxcb-util-dev", "libxcb-keysyms1-dev", "libxcb-image0-dev", "libxcb-shm0-dev", "libxcb-sync-dev", "libxcb-xfixes0-dev", "libxcb-shape0-dev", "libxcb-randr0-dev", "libxcb-render0-dev", "libxcb-render-util0-dev", "libxcb-xinerama0-dev"])
                     if self.options.opengl == "desktop":
                         pack_names.append("libgl1-mesa-dev")
                 if self.options.qtmultimedia:
@@ -165,6 +165,8 @@ class QtConan(ConanFile):
         # https://codereview.qt-project.org/c/qt/qtbase/+/245425
         # should not needed in Qt >= 5.12.1
         #tools.patch(patch_file="fix_qqmlthread_assertion_dbg.diff", base_path="qt5/qtdeclarative/")
+        tools.patch(patch_file="QTBUG-86785.patch", base_path="qt5/qtbase")
+
 
     def _toUnixPath(self, paths):
         if self.settings.os == "Android" and tools.os_info.is_windows:
