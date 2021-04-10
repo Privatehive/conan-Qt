@@ -182,7 +182,6 @@ jobs:
   - Linux
   - Windows
   - Macos
-  - Emscripten
   condition: and(succeeded(), in(variables['Build.Reason'], 'IndividualCI', 'BatchedCI'))
   pool:
     vmImage: "ubuntu-16.04"

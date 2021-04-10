@@ -341,8 +341,12 @@ class QtConan(ConanFile):
             if tools.os_info.is_windows:
                 i = 0
                 while i < 10:
-                    self.run("make", ignore_errors=True, win_bash=tools.os_info.is_windows) # Workaround MSYS2 qmltyperegistrar.exe: Bad address
-                    i += 1
+                    try:
+                        self.run("make", win_bash=tools.os_info.is_windows) # Workaround MSYS2 qmltyperegistrar.exe: Bad address
+                    except:
+                        i += 1
+                        continue
+                    break
                     
             self.run("make", win_bash=tools.os_info.is_windows)
             self.run("make install", win_bash=tools.os_info.is_windows)
