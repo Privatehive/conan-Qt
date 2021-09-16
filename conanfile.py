@@ -85,7 +85,7 @@ class QtConan(ConanFile):
             if self.options.opengl != "no":
                 self.options.opengl = "es2"
 
-        assert QtConan.version == QtConan.submodules['qtbase']['branch']
+        assert QtConan.version == QtConan.submodules['qtbase']['branch'] + '-kde'
         def enablemodule(self, module):
             setattr(self.options, module, True)
             for req in QtConan.submodules[module]["depends"]:
@@ -136,10 +136,10 @@ class QtConan(ConanFile):
                 self.output.warn("Couldn't install system requirements")
 
     def source(self):
-        git = tools.Git(folder="qt5")
-        git.clone("https://invent.kde.org/qt/qt/qt5.git", branch="kde/5.15", shallow=True)
-        git.run("submodule init")
-        git.run("submodule update")
+        git = tools.Git()
+        #git.clone("https://invent.kde.org/qt/qt/qt5.git", args="--recursive", branch="kde/5.15", shallow=True)
+        git.run("clone -b kde/5.15 --recursive --depth 1 https://invent.kde.org/qt/qt/qt5.git")
+        #git.run("submodule update")
         #url = "http://download.qt.io/official_releases/qt/{0}/{1}/single/qt-everywhere-src-{1}"\
         #    .format(self.version[:self.version.rfind('.')], self.version)
         #if tools.os_info.is_windows:
