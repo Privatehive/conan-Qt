@@ -33,7 +33,7 @@ class QtConan(ConanFile):
                         res[modulename]["depends"] = []
             return res
 
-    version = "6.0.0"
+    version = "6.1.1"
     description = "Conan.io package for Qt library."
     url = "https://github.com/Tereius/conan-Qt"
     homepage = "https://www.qt.io/"
@@ -74,11 +74,11 @@ class QtConan(ConanFile):
         self.name = "Qt"
 
     def build_requirements(self):
+        self.build_requires("ninja/1.10.2")
         if tools.cross_building(self):
             self.build_requires("%s/%s@%s/%s" % (self.name, self.version, self.user, self.channel))
             for essential_module in self.essential_submodules:
-                if essential_module != "qtqa":
-                    setattr(self.build_requires_options[self.name], essential_module, True)
+                setattr(self.build_requires_options[self.name], essential_module, True)
         self._build_system_requirements()
 
     def configure(self):
@@ -94,7 +94,6 @@ class QtConan(ConanFile):
         if not self.options.GUI:
             self.options.opengl = "no"
         if self.settings.os == "Android":
-            self.options["android-ndk"].makeStandalone = False
             if self.options.opengl != "no":
                 self.options.opengl = "es2"
         if self.settings.os == "iOS":
@@ -167,7 +166,7 @@ class QtConan(ConanFile):
         #if "RASPBIAN_ROOTFS" in os.environ:
         tools.replace_in_file("qtbase/src/corelib/io/qfilesystemengine_unix.cpp", "QT_BEGIN_NAMESPACE", "QT_BEGIN_NAMESPACE\n#undef STATX_BASIC_STATS")
         tools.replace_in_file("qtbase/cmake/3rdparty/extra-cmake-modules/find-modules/FindEGL.cmake", "cmake_pop_check_state()", "cmake_pop_check_state()\nset(HAVE_EGL ON)")
-        tools.patch(base_path="qtbase", patch_file="egl_brcm.patch")
+        #tools.patch(base_path="qtbase", patch_file="egl_brcm.patch")
         
         tools.replace_in_file("qtbase/src/plugins/platforms/eglfs/deviceintegration/CMakeLists.txt", "# add_subdirectory(eglfs_brcm) # special case TODO", "add_subdirectory(eglfs_brcm)")
         shutil.copyfile(os.path.join(self.source_folder, "eglfs_brcm", "CMakeLists.txt"), os.path.join(self.source_folder, "qtbase", "src", "plugins", "platforms", "eglfs", "deviceintegration", "eglfs_brcm", "CMakeLists.txt"))
@@ -178,23 +177,25 @@ class QtConan(ConanFile):
 
     def build(self):
 
-        cmake = CMake(self)
+        cmake = CMake(self, generator="Ninja")
         module_list = []
         
         for module in QtConan.submodules:
             if getattr(self.options, module):
                 module_list.append(module)
                 
-        cmake.definitions["BUILD_SUBMODULES"] = ";".join(module_list)
+        cmake.definitions["BUILD_SUBMODULES:STRING"] = ";".join(module_list)
         #cmake.verbose = True
         if tools.cross_building(self):
             cmake.definitions["QT_HOST_PATH"] = os.environ["QT_HOST_PATH"]
             cmake.definitions["QT_FORCE_FIND_TOOLS"] = "OFF"
             cmake.definitions["QT_BUILD_TOOLS_WHEN_CROSSCOMPILING"] = "OFF"
-            #cmake.definitions["QT_NO_MAKE_TESTS"] = "ON"
-        cmake.definitions["BUILD_EXAMPLES"] = "OFF"
-        cmake.definitions["QT_NO_MAKE_EXAMPLES"] = "ON"
-        cmake.definitions["QT_NO_MAKE_TOOLS"] = "ON"
+        cmake.definitions["QT_BUILD_BENCHMARKS"] = "OFF"
+        cmake.definitions["QT_BUILD_MANUAL_TESTS"] = "OFF"
+        cmake.definitions["QT_BUILD_TESTS"] = "OFF"
+        cmake.definitions["QT_BUILD_TESTS_BY_DEFAULT"] = "OFF"
+        cmake.definitions["QT_BUILD_EXAMPLES"] = "OFF"
+        cmake.definitions["QT_BUILD_EXAMPLES_BY_DEFAULT"] = "OFF"
         if self.options.GUI:
             cmake.definitions["FEATURE_gui"] = "ON"
         else:
@@ -216,6 +217,9 @@ class QtConan(ConanFile):
         #cmake.definitions["CMAKE_FIND_DEBUG_MODE"] = "ON"
         #cmake.definitions["CMAKE_VERBOSE_MAKEFILE"] = "ON"
         
+        if self.settings.os == "Android":
+            cmake.definitions["ANDROID_SDK_ROOT"] = os.environ["ANDROID_SDK_ROOT"]
+
         if "RASPBIAN_ROOTFS" in os.environ:
             cmake.definitions["FEATURE_libudev"] = "OFF"
             cmake.definitions["FEATURE_brotli"] = "OFF"
