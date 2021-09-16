@@ -34,7 +34,7 @@ class QtConan(ConanFile):
     submodules = getsubmodules()
 
     name = "Qt"
-    version = "5.15.2"
+    version = "5.15.2-kde"
     description = "Conan.io package for Qt library."
     url = "https://github.com/Tereius/conan-Qt"
     homepage = "https://www.qt.io/"
@@ -136,14 +136,18 @@ class QtConan(ConanFile):
                 self.output.warn("Couldn't install system requirements")
 
     def source(self):
-        url = "http://download.qt.io/official_releases/qt/{0}/{1}/single/qt-everywhere-src-{1}"\
-            .format(self.version[:self.version.rfind('.')], self.version)
-        if tools.os_info.is_windows:
-            tools.get("%s.zip" % url)
-        else:
-            tools.get("%s.tar.xz" % url)
+        git = tools.Git(folder="qt5")
+        git.clone("https://invent.kde.org/qt/qt/qt5.git", branch="kde/5.15", shallow=True)
+        git.run("submodule init")
+        git.run("submodule update")
+        #url = "http://download.qt.io/official_releases/qt/{0}/{1}/single/qt-everywhere-src-{1}"\
+        #    .format(self.version[:self.version.rfind('.')], self.version)
+        #if tools.os_info.is_windows:
+        #    tools.get("%s.zip" % url)
+        #else:
+        #    tools.get("%s.tar.xz" % url)
             #self.run("wget -qO- %s.tar.xz | tar -xJ " % url)
-        shutil.move("qt-everywhere-src-%s" % self.version, "qt5")
+        #shutil.move("qt-everywhere-src-%s" % self.version, "qt5")
 
         tools.replace_in_file("qt5/qtbase/src/network/ssl/ssl.pri", "build_pass|single_android_abi: LIBS_PRIVATE += -lssl_$${QT_ARCH} -lcrypto_$${QT_ARCH}", "QMAKE_USE_FOR_PRIVATE += openssl")
         tools.replace_in_file("qt5/qtdeclarative/src/3rdparty/masm/masm.pri", "$$QMAKE_PYTHON", "python")
@@ -157,9 +161,9 @@ class QtConan(ConanFile):
         # Do not use subdirectories in plugin folder since this is not App Store compatible
         tools.replace_in_file("qt5/qtdeclarative/src/3rdparty/masm/wtf/OSAllocatorPosix.cpp", "#include <sys/syscall.h>", "#include <sys/syscall.h>\n#include <linux/limits.h>")
         
-        tools.replace_in_file("qt5/qtlocation/src/3rdparty/mapbox-gl-native/platform/default/bidi.cpp", "#include <memory>", "#include <memory>\n#include <stdexcept>")
+        #tools.replace_in_file("qt5/qtlocation/src/3rdparty/mapbox-gl-native/platform/default/bidi.cpp", "#include <memory>", "#include <memory>\n#include <stdexcept>")
         
-        tools.replace_in_file("qt5/qtlocation/src/3rdparty/mapbox-gl-native/src/mbgl/util/convert.cpp", "#include <mbgl/util/convert.hpp>", "#include <mbgl/util/convert.hpp>\n#include <stdint.h>")
+        #tools.replace_in_file("qt5/qtlocation/src/3rdparty/mapbox-gl-native/src/mbgl/util/convert.cpp", "#include <mbgl/util/convert.hpp>", "#include <mbgl/util/convert.hpp>\n#include <stdint.h>")
 
         # fix error with mersenne_twisters
         # https://codereview.qt-project.org/c/qt/qtbase/+/245425
