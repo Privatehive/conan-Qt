@@ -169,7 +169,7 @@ class QtConan(ConanFile):
         # https://codereview.qt-project.org/c/qt/qtbase/+/245425
         # should not needed in Qt >= 5.12.1
         #tools.patch(patch_file="fix_qqmlthread_assertion_dbg.diff", base_path="qt5/qtdeclarative/")
-        tools.patch(patch_file="QTBUG-86785.patch", base_path="qt5/qtbase")
+        #tools.patch(patch_file="QTBUG-86785.patch", base_path="qt5/qtbase")
 
 
     def _toUnixPath(self, paths):
