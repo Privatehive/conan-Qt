@@ -10,16 +10,16 @@ jobs:
   strategy:
     matrix:
       armv7Linux:
-        imageName: "ubuntu-16.04"
+        imageName: "ubuntu-18.04"
         buildProfile: "androidArmv7LinuxHost"
       armv8Linux:
-        imageName: "ubuntu-16.04"
+        imageName: "ubuntu-18.04"
         buildProfile: "androidArmv8LinuxHost"
       x86Linux:
-        imageName: "ubuntu-16.04"
+        imageName: "ubuntu-18.04"
         buildProfile: "androidx86LinuxHost"
       x86_64Linux:
-        imageName: "ubuntu-16.04"
+        imageName: "ubuntu-18.04"
         buildProfile: "androidx86_64LinuxHost"
       armv7Windows:
         imageName: "vs2017-win2016"
@@ -27,6 +27,12 @@ jobs:
       armv8Windows:
         imageName: "vs2017-win2016"
         buildProfile: "androidArmv8WinHost"
+      x86Windows:
+        imageName: "vs2017-win2016"
+        buildProfile: "androidx86WinHost"
+      x86_64Windows:
+        imageName: "vs2017-win2016"
+        buildProfile: "androidx86_64WinHost"
   pool:
     vmImage: '$(imageName)'
   timeoutInMinutes: 0
@@ -50,7 +56,7 @@ jobs:
       Release:
         buildType: "Release"
   pool:
-    vmImage: "ubuntu-16.04"
+    vmImage: "ubuntu-18.04"
   timeoutInMinutes: 0
   steps:
   - template: buildConanRecipe.yml@templates
@@ -72,7 +78,7 @@ jobs:
       Release:
         buildType: "Release"
   pool:
-    vmImage: "ubuntu-16.04"
+    vmImage: "ubuntu-18.04"
   timeoutInMinutes: 0
   steps:
   - template: buildConanRecipe.yml@templates
@@ -87,7 +93,7 @@ jobs:
         CONAN_BASE_PROFILE_OSBUILD: "Linux",
         CONAN_BASE_PROFILE_ARCHBUILD: "x86_64",
         CONAN_BASE_PROFILE_COMPILER: "gcc",
-        CONAN_BASE_PROFILE_COMPILER_VERSION: "5",
+        CONAN_BASE_PROFILE_COMPILER_VERSION: "7",
         CONAN_BASE_PROFILE_COMPILER_LIBCXX: "libstdc++",
         CONAN_OPTIONS: "Qt:shared=True,Qt:GUI=True,Qt:widgets=True,Qt:openssl=True,Qt:qtbase=True,Qt:qtsvg=True,Qt:qtdeclarative=True,Qt:qttools=True,Qt:qttranslations=True,Qt:qtgraphicaleffects=True,Qt:qtquickcontrols2=True,Qt:qtquickcontrols=True,Qt:qtmultimedia=True,Qt:qtxmlpatterns=True,Qt:qtdoc=True,Qt:qtlocation=True,Qt:qtsensors=True,Qt:qtconnectivity=True,Qt:qtimageformats=True,Qt:qtx11extras=True,Qt:qtwebsockets=True"
       }
@@ -156,7 +162,7 @@ jobs:
       Release:
         buildType: "Release"
   pool:
-    vmImage: "ubuntu-16.04"
+    vmImage: "ubuntu-18.04"
   timeoutInMinutes: 0
   steps:
   - template: buildConanRecipe.yml@templates
@@ -184,7 +190,7 @@ jobs:
   - Macos
   condition: and(succeeded(), in(variables['Build.Reason'], 'IndividualCI', 'BatchedCI'))
   pool:
-    vmImage: "ubuntu-16.04"
+    vmImage: "ubuntu-latest"
   steps:
   - template: uploadConanRecipe.yml@templates
     parameters: 
