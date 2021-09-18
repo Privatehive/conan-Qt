@@ -340,7 +340,7 @@ class QtConan(ConanFile):
                 "ANDROID_NDK_ROOT": self._toUnixPath(tools.get_env("NDK_ROOT")),
                 "SYSROOT": self._toUnixPath(tools.get_env("SYSROOT")),
                 "MAKEFLAGS": "-j %d" % tools.cpu_count(),
-                "MSYS2_ARG_CONV_EXCL": "--resource-file-mapping="
+                "MSYS2_ARG_CONV_EXCL": "*"
             }):
             self.run(self._toUnixPath("%s/qt5/configure " % self.source_folder) + " ".join(args), win_bash=tools.os_info.is_windows)
             self.run("make", win_bash=tools.os_info.is_windows) # Workaround MSYS2 qmltyperegistrar.exe: Bad address                    
