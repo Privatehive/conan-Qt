@@ -182,7 +182,7 @@ class QtConan(ConanFile):
             return paths
 
     def build(self):
-        args = ["-v", "-opensource", "-confirm-license", "-nomake examples", "-nomake tests",
+        args = ["-v", "-opensource", "-confirm-license", "-skip qtdocgallery", "-nomake examples", "-nomake tests",
                 "-prefix %s" % self._toUnixPath(self.package_folder)]
         if not self.options.GUI:
             args.append("-no-gui")
@@ -339,20 +339,11 @@ class QtConan(ConanFile):
                 "NDK_ROOT": self._toUnixPath(tools.get_env("NDK_ROOT")),
                 "ANDROID_NDK_ROOT": self._toUnixPath(tools.get_env("NDK_ROOT")),
                 "SYSROOT": self._toUnixPath(tools.get_env("SYSROOT")),
-                "MAKEFLAGS":"-j %d" % tools.cpu_count()
+                "MAKEFLAGS": "-j %d" % tools.cpu_count(),
+                "MSYS2_ARG_CONV_EXCL": "--resource-file-mapping="
             }):
             self.run(self._toUnixPath("%s/qt5/configure " % self.source_folder) + " ".join(args), win_bash=tools.os_info.is_windows)
-            if tools.os_info.is_windows:
-                i = 0
-                while i < 10:
-                    try:
-                        self.run("make", win_bash=tools.os_info.is_windows) # Workaround MSYS2 qmltyperegistrar.exe: Bad address
-                    except:
-                        i += 1
-                        continue
-                    break
-                    
-            self.run("make", win_bash=tools.os_info.is_windows)
+            self.run("make", win_bash=tools.os_info.is_windows) # Workaround MSYS2 qmltyperegistrar.exe: Bad address                    
             self.run("make install", win_bash=tools.os_info.is_windows)
 
     def _build_wasm(self, args):
