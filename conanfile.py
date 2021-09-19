@@ -34,7 +34,7 @@ class QtConan(ConanFile):
     submodules = getsubmodules()
 
     name = "Qt"
-    version = "5.15.2-kde"
+    version = "5.15.2"
     description = "Conan.io package for Qt library."
     url = "https://github.com/Tereius/conan-Qt"
     homepage = "https://www.qt.io/"
@@ -85,7 +85,7 @@ class QtConan(ConanFile):
             if self.options.opengl != "no":
                 self.options.opengl = "es2"
 
-        assert QtConan.version == QtConan.submodules['qtbase']['branch'] + '-kde'
+        assert QtConan.version == QtConan.submodules['qtbase']['branch']
         def enablemodule(self, module):
             setattr(self.options, module, True)
             for req in QtConan.submodules[module]["depends"]:
@@ -340,7 +340,7 @@ class QtConan(ConanFile):
                 "ANDROID_NDK_ROOT": self._toUnixPath(tools.get_env("NDK_ROOT")),
                 "SYSROOT": self._toUnixPath(tools.get_env("SYSROOT")),
                 "MAKEFLAGS": "-j %d" % tools.cpu_count(),
-                "MSYS2_ARG_CONV_EXCL": "*"
+                "MSYS2_ARG_CONV_EXCL": "--foreign-types=;--dependencies=;--private-includes=;--import-name=;--generate-qmltypes="
             }):
             self.run(self._toUnixPath("%s/qt5/configure " % self.source_folder) + " ".join(args), win_bash=tools.os_info.is_windows)
             self.run("make", win_bash=tools.os_info.is_windows) # Workaround MSYS2 qmltyperegistrar.exe: Bad address                    
