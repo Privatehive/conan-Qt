@@ -136,14 +136,18 @@ class QtConan(ConanFile):
                 self.output.warn("Couldn't install system requirements")
 
     def source(self):
-        url = "http://download.qt.io/official_releases/qt/{0}/{1}/single/qt-everywhere-src-{1}"\
-            .format(self.version[:self.version.rfind('.')], self.version)
-        if tools.os_info.is_windows:
-            tools.get("%s.zip" % url)
-        else:
-            tools.get("%s.tar.xz" % url)
+        git = tools.Git()
+        #git.clone("https://invent.kde.org/qt/qt/qt5.git", args="--recursive", branch="kde/5.15", shallow=True)
+        git.run("clone -b kde/5.15 --recursive --depth 1 https://invent.kde.org/qt/qt/qt5.git")
+        #git.run("submodule update")
+        #url = "http://download.qt.io/official_releases/qt/{0}/{1}/single/qt-everywhere-src-{1}"\
+        #    .format(self.version[:self.version.rfind('.')], self.version)
+        #if tools.os_info.is_windows:
+        #    tools.get("%s.zip" % url)
+        #else:
+        #    tools.get("%s.tar.xz" % url)
             #self.run("wget -qO- %s.tar.xz | tar -xJ " % url)
-        shutil.move("qt-everywhere-src-%s" % self.version, "qt5")
+        #shutil.move("qt-everywhere-src-%s" % self.version, "qt5")
 
         tools.replace_in_file("qt5/qtbase/src/network/ssl/ssl.pri", "build_pass|single_android_abi: LIBS_PRIVATE += -lssl_$${QT_ARCH} -lcrypto_$${QT_ARCH}", "QMAKE_USE_FOR_PRIVATE += openssl")
         tools.replace_in_file("qt5/qtdeclarative/src/3rdparty/masm/masm.pri", "$$QMAKE_PYTHON", "python")
@@ -157,15 +161,15 @@ class QtConan(ConanFile):
         # Do not use subdirectories in plugin folder since this is not App Store compatible
         tools.replace_in_file("qt5/qtdeclarative/src/3rdparty/masm/wtf/OSAllocatorPosix.cpp", "#include <sys/syscall.h>", "#include <sys/syscall.h>\n#include <linux/limits.h>")
         
-        tools.replace_in_file("qt5/qtlocation/src/3rdparty/mapbox-gl-native/platform/default/bidi.cpp", "#include <memory>", "#include <memory>\n#include <stdexcept>")
+        #tools.replace_in_file("qt5/qtlocation/src/3rdparty/mapbox-gl-native/platform/default/bidi.cpp", "#include <memory>", "#include <memory>\n#include <stdexcept>")
         
-        tools.replace_in_file("qt5/qtlocation/src/3rdparty/mapbox-gl-native/src/mbgl/util/convert.cpp", "#include <mbgl/util/convert.hpp>", "#include <mbgl/util/convert.hpp>\n#include <stdint.h>")
+        #tools.replace_in_file("qt5/qtlocation/src/3rdparty/mapbox-gl-native/src/mbgl/util/convert.cpp", "#include <mbgl/util/convert.hpp>", "#include <mbgl/util/convert.hpp>\n#include <stdint.h>")
 
         # fix error with mersenne_twisters
         # https://codereview.qt-project.org/c/qt/qtbase/+/245425
         # should not needed in Qt >= 5.12.1
         #tools.patch(patch_file="fix_qqmlthread_assertion_dbg.diff", base_path="qt5/qtdeclarative/")
-        tools.patch(patch_file="QTBUG-86785.patch", base_path="qt5/qtbase")
+        #tools.patch(patch_file="QTBUG-86785.patch", base_path="qt5/qtbase")
 
 
     def _toUnixPath(self, paths):
@@ -178,7 +182,7 @@ class QtConan(ConanFile):
             return paths
 
     def build(self):
-        args = ["-v", "-opensource", "-confirm-license", "-nomake examples", "-nomake tests",
+        args = ["-v", "-opensource", "-confirm-license", "-skip qtdocgallery", "-nomake examples", "-nomake tests",
                 "-prefix %s" % self._toUnixPath(self.package_folder)]
         if not self.options.GUI:
             args.append("-no-gui")
@@ -335,20 +339,11 @@ class QtConan(ConanFile):
                 "NDK_ROOT": self._toUnixPath(tools.get_env("NDK_ROOT")),
                 "ANDROID_NDK_ROOT": self._toUnixPath(tools.get_env("NDK_ROOT")),
                 "SYSROOT": self._toUnixPath(tools.get_env("SYSROOT")),
-                "MAKEFLAGS":"-j %d" % tools.cpu_count()
+                "MAKEFLAGS": "-j %d" % tools.cpu_count(),
+                "MSYS2_ARG_CONV_EXCL": "--foreign-types=;--dependencies=;--private-includes=;--import-name=;--generate-qmltypes="
             }):
             self.run(self._toUnixPath("%s/qt5/configure " % self.source_folder) + " ".join(args), win_bash=tools.os_info.is_windows)
-            if tools.os_info.is_windows:
-                i = 0
-                while i < 10:
-                    try:
-                        self.run("make", win_bash=tools.os_info.is_windows) # Workaround MSYS2 qmltyperegistrar.exe: Bad address
-                    except:
-                        i += 1
-                        continue
-                    break
-                    
-            self.run("make", win_bash=tools.os_info.is_windows)
+            self.run("make", win_bash=tools.os_info.is_windows) # Workaround MSYS2 qmltyperegistrar.exe: Bad address                    
             self.run("make install", win_bash=tools.os_info.is_windows)
 
     def _build_wasm(self, args):
