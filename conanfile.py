@@ -68,7 +68,7 @@ class QtConan(ConanFile):
         if self.settings.os == "iOS":
             raise ConanException("iOS not supported")
         if self.options.openssl:
-            self.requires("openssl/1.1.1i")
+            self.requires("openssl/1.1.1l@tereius/stable")
             if self.settings.os == 'Emscripten':
                 self.options["openssl"].shared = False
             else:
