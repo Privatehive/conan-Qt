@@ -60,7 +60,7 @@ class QtConan(ConanFile):
     def build_requirements(self):
         self._build_system_requirements()
         if self.settings.os == 'Windows' and self.settings.compiler == 'Visual Studio':
-            self.build_requires("jom/1.1.3")
+            self.build_requires("jom/1.1.3@tereius/stable")
 
     def configure(self):
         if self.settings.os == "iOS":
@@ -345,7 +345,7 @@ class QtConan(ConanFile):
             self.run("make install", win_bash=tools.os_info.is_windows)
 
     def _build_wasm(self, args):
-        args += ["--disable-rpath", "-skip qttranslations", "-skip qtserialport", "-feature-thread"]
+        args += ["--disable-rpath", "-skip qttranslations", "-skip qtserialport"]
         args += ["-xplatform wasm-emscripten"]
         env_build = AutoToolsBuildEnvironment(self)
         self.run("%s/qt5/configure %s" % (self.source_folder, " ".join(args)))
