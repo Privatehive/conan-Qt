@@ -366,7 +366,7 @@ class QtConan(ConanFile):
         self.copy("bin/qt.conf", src="qtbase")
         if self.settings.os == "Android":
             #QTBUG-87863
-            tools.patch(base_path=os.path.join(self.package_folder, "lib", "cmake", "Qt5Core"), patch_file=os.path.join(self.source_folder, "QTBUG-87863.patch"))
+            #tools.patch(base_path=os.path.join(self.package_folder, "lib", "cmake", "Qt5Core"), patch_file=os.path.join(self.source_folder, "QTBUG-87863.patch"))
             # One qt cmake file contains hardcoded paths. We have to remove those
             file_name = os.path.join(self.package_folder, "lib", "cmake", "Qt5Gui", "Qt5GuiConfigExtras.cmake")
             fin = open(file_name, "rt")
