@@ -88,13 +88,7 @@ jobs:
         CONAN_CHANNEL: "stable",
         CONAN_REMOTES: "https://conan.privatehive.de/artifactory/api/conan/public-conan",
         CONAN_BASE_PROFILE_BUILDTYPE: "$(buildType)",
-        CONAN_BASE_PROFILE_OS: "Linux",
-        CONAN_BASE_PROFILE_ARCH: "x86_64",
-        CONAN_BASE_PROFILE_OSBUILD: "Linux",
-        CONAN_BASE_PROFILE_ARCHBUILD: "x86_64",
-        CONAN_BASE_PROFILE_COMPILER: "gcc",
-        CONAN_BASE_PROFILE_COMPILER_VERSION: "7",
-        CONAN_BASE_PROFILE_COMPILER_LIBCXX: "libstdc++",
+        CONAN_BASE_PROFILE: "default"
         CONAN_OPTIONS: "Qt:shared=True,Qt:GUI=True,Qt:widgets=True,Qt:openssl=True,Qt:qtbase=True,Qt:qtsvg=True,Qt:qtdeclarative=True,Qt:qttools=True,Qt:qttranslations=True,Qt:qtgraphicaleffects=True,Qt:qtquickcontrols2=True,Qt:qtquickcontrols=True,Qt:qtmultimedia=True,Qt:qtxmlpatterns=True,Qt:qtdoc=True,Qt:qtlocation=True,Qt:qtsensors=True,Qt:qtconnectivity=True,Qt:qtimageformats=True,Qt:qtx11extras=True,Qt:qtwebsockets=True"
       }
 
@@ -106,7 +100,7 @@ jobs:
       Release:
         buildType: "Release"
   pool:
-    vmImage: "vs2017-win2016"
+    vmImage: "windows-2019"
   timeoutInMinutes: 0
   steps:
   - template: buildConanRecipe.yml@templates
@@ -116,12 +110,7 @@ jobs:
         CONAN_CHANNEL: "stable",
         CONAN_REMOTES: "https://conan.privatehive.de/artifactory/api/conan/public-conan",
         CONAN_BASE_PROFILE_BUILDTYPE: "$(buildType)",
-        CONAN_BASE_PROFILE_OS: "Windows",
-        CONAN_BASE_PROFILE_ARCH: "x86_64",
-        CONAN_BASE_PROFILE_OSBUILD: "Windows",
-        CONAN_BASE_PROFILE_ARCHBUILD: "x86_64",
-        CONAN_BASE_PROFILE_COMPILER: "Visual Studio",
-        CONAN_BASE_PROFILE_COMPILER_VERSION: "15",
+        CONAN_BASE_PROFILE: "default"
         CONAN_OPTIONS: "Qt:shared=True,Qt:GUI=True,Qt:widgets=True,Qt:openssl=True,Qt:qtbase=True,Qt:qtsvg=True,Qt:qtdeclarative=True,Qt:qttools=True,Qt:qttranslations=True,Qt:qtgraphicaleffects=True,Qt:qtquickcontrols2=True,Qt:qtquickcontrols=True,Qt:qtmultimedia=True,Qt:qtxmlpatterns=True,Qt:qtdoc=True,Qt:qtlocation=True,Qt:qtsensors=True,Qt:qtconnectivity=True,Qt:qtimageformats=True,Qt:qtx11extras=True,Qt:qtwebsockets=True"
       }
       
@@ -133,7 +122,7 @@ jobs:
       Release:
         buildType: "Release"
   pool:
-    vmImage: "macOS-10.14"
+    vmImage: "macOS-11"
   timeoutInMinutes: 0
   steps:
   - template: buildConanRecipe.yml@templates
@@ -143,14 +132,7 @@ jobs:
         CONAN_CHANNEL: "stable",
         CONAN_REMOTES: "https://conan.privatehive.de/artifactory/api/conan/public-conan",
         CONAN_BASE_PROFILE_BUILDTYPE: "$(buildType)",
-        CONAN_BASE_PROFILE_OS: "Macos",
-        CONAN_BASE_PROFILE_OS_VERSION: "10.14",
-        CONAN_BASE_PROFILE_ARCH: "x86_64",
-        CONAN_BASE_PROFILE_OSBUILD: "Macos",
-        CONAN_BASE_PROFILE_ARCHBUILD: "x86_64",
-        CONAN_BASE_PROFILE_COMPILER: "apple-clang",
-        CONAN_BASE_PROFILE_COMPILER_VERSION: "10.0",
-        CONAN_BASE_PROFILE_COMPILER_LIBCXX: "libc++",
+        CONAN_BASE_PROFILE: "default"
         CONAN_OPTIONS: "Qt:shared=True,Qt:GUI=True,Qt:widgets=True,Qt:openssl=True,Qt:qtbase=True,Qt:qtsvg=True,Qt:qtdeclarative=True,Qt:qttools=True,Qt:qttranslations=True,Qt:qtgraphicaleffects=True,Qt:qtquickcontrols2=True,Qt:qtquickcontrols=True,Qt:qtmultimedia=True,Qt:qtxmlpatterns=True,Qt:qtdoc=True,Qt:qtlocation=True,Qt:qtsensors=True,Qt:qtconnectivity=True,Qt:qtimageformats=True,Qt:qtx11extras=True,Qt:qtwebsockets=True"
       }
       
