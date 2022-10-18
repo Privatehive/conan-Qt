@@ -22,16 +22,16 @@ jobs:
         imageName: "ubuntu-18.04"
         buildProfile: "androidx86_64LinuxHost"
       armv7Windows:
-        imageName: "vs2017-win2016"
+        imageName: "windows-2019"
         buildProfile: "androidArmv7WinHost"
       armv8Windows:
-        imageName: "vs2017-win2016"
+        imageName: "windows-2019"
         buildProfile: "androidArmv8WinHost"
       x86Windows:
-        imageName: "vs2017-win2016"
+        imageName: "windows-2019"
         buildProfile: "androidx86WinHost"
       x86_64Windows:
-        imageName: "vs2017-win2016"
+        imageName: "windows-2019"
         buildProfile: "androidx86_64WinHost"
   pool:
     vmImage: '$(imageName)'
