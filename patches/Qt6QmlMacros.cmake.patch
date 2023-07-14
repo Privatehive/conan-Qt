@@ -1,0 +1,133 @@
+diff --git a/src/qml/Qt6QmlMacros.cmake b/src/qml/Qt6QmlMacros.cmake
+index f42d884b..c80bb1ad 100644
+--- a/src/qml/Qt6QmlMacros.cmake
++++ b/src/qml/Qt6QmlMacros.cmake
+@@ -3168,7 +3168,7 @@ qt_deploy_runtime_dependencies(
+     ADDITIONAL_MODULES \${plugins_found}
+     GENERATE_QT_CONF
+ ${common_deploy_args})")
+-    elseif(UNIX AND NOT APPLE AND NOT ANDROID AND NOT CMAKE_CROSSCOMPILING
++    elseif(UNIX AND NOT APPLE AND NOT ANDROID
+             AND QT6_IS_SHARED_LIBS_BUILD)
+         qt6_generate_deploy_script(
+             TARGET ${arg_TARGET}
+@@ -3591,3 +3591,119 @@ function(_qt_internal_add_qml_static_plugin_dependency target dep_target)
+             "$<${skip_prl_marker}:$<TARGET_NAME:${dep_target}>>")
+     endif()
+ endfunction()
++# This function is currently in Technical Preview.
++# Its signature and behavior might change.
++function(qt6_generate_deploy_qml_module_script)
++    # We take the target using a TARGET keyword instead of as the first
++    # positional argument so that we have a consistent signature with the
++    # qt6_generate_deploy_qml_app_script() command.
++    set(no_value_options "")
++    set(single_value_options
++        TARGET
++        FILENAME_VARIABLE
++    )
++    set(multi_value_options "")
++    cmake_parse_arguments(PARSE_ARGV 0 arg
++        "${no_value_options}" "${single_value_options}" "${multi_value_options}"
++    )
++    if(arg_UNPARSED_ARGUMENTS)
++        message(FATAL_ERROR "Unexpected arguments: ${arg_UNPARSED_ARGUMENTS}")
++    endif()
++    if(NOT arg_TARGET)
++        message(FATAL_ERROR "TARGET must be specified")
++    endif()
++    if(NOT arg_FILENAME_VARIABLE)
++        message(FATAL_ERROR "FILENAME_VARIABLE must be specified")
++    endif()
++
++    # Create a file name that will be unique for this target and the combination
++    # of arguments passed to this command. This allows the project to call us
++    # multiple times with different arguments for the same target (e.g. to
++    # create deployment scripts for different scenarios).
++    string(MAKE_C_IDENTIFIER "${arg_TARGET}" target_id)
++    string(SHA1 args_hash "${ARGV}")
++    string(SUBSTRING "${args_hash}" 0 10 short_hash)
++    _qt_internal_get_deploy_impl_dir(deploy_impl_dir)
++    set(file_name "${deploy_impl_dir}/deploy_qml_module_${target_id}_${short_hash}")
++    set(${arg_FILENAME_VARIABLE} "${file_name}" PARENT_SCOPE)
++
++    # Unlike deploying a QML app, for deploying just a QML module, we know
++    # everything we need at configure time. We don't have to search for imports
++    # and only need to know what goes into just this one QML module.
++
++    # Note that we want the project to install the backing target and plugin
++    # target directly so that CMake gets a chance to rewrite the RPATH
++    # information at install time. Therefore, we don't try to deploy either of
++    # those here.
++    qt6_query_qml_module(${arg_TARGET}
++        TARGET_PATH target_path
++        QMLDIR qmldir
++        TYPEINFO typeinfo
++        QML_FILES qml_files
++        QML_FILES_DEPLOY_PATHS qml_files_deploy_paths
++        RESOURCES resources
++        RESOURCES_DEPLOY_PATHS resources_deploy_paths
++    )
++
++    set(contents "include(${QT_DEPLOY_SUPPORT})\n")
++
++    # TODO: Should we provide an option to override this base prefix?
++    set(qml_dir_prefix "\${QT_DEPLOY_PREFIX}/\${QT_DEPLOY_QML_DIR}")
++    set(module_dir "${qml_dir_prefix}/${target_path}")
++
++    string(APPEND contents "file(INSTALL \"${qmldir}\" DESTINATION \"${module_dir}\")\n")
++    if(typeinfo)
++        string(APPEND contents "file(INSTALL \"${typeinfo}\" DESTINATION \"${module_dir}\")\n")
++    endif()
++
++    macro(_qt_internal_install_qml_module_file src dest)
++        get_filename_component(dest_dir "${dest}" DIRECTORY)
++        if ("${dest_dir}" STREQUAL "")
++            set(dest_dir "${module_dir}")
++        else()
++            set(dest_dir "${module_dir}/${dest_dir}")
++        endif()
++        string(APPEND contents "file(INSTALL \"${src}\" DESTINATION \"${dest_dir}\")\n")
++
++        # The file(INSTALL) command doesn't offer a way to rename the file as
++        # part of the install, so we have to do that as a separate step.
++        get_filename_component(src_name  "${src}"  NAME)
++        get_filename_component(dest_name "${dest}" NAME)
++        if(NOT "${src_name}" STREQUAL "${dest_name}")
++            string(APPEND contents
++"message(STATUS \"Renaming \\\"${src}\\\" to \\\"${dest}\\\"\")
++file(RENAME \"${dest_dir}/${src_name}\" \"${dest_dir}/${dest_name}\")
++")
++        endif()
++    endmacro()
++
++    foreach(list_name IN ITEMS qml_files resources)
++        list(LENGTH ${list_name} num_files)
++        if(num_files EQUAL 1)
++            # An empty list is indistinguishable from a list containing a single
++            # empty string as its only item, so we have to handle it specially
++            if(${list_name}_deploy_paths)
++                _qt_internal_install_qml_module_file(
++                    "${${list_name}}" "${${list_name}_deploy_paths}")
++            endif()
++        else()
++            math(EXPR last_index "${num_files} - 1")
++            foreach(i RANGE 0 ${last_index})
++                list(GET ${list_name}_deploy_paths ${i} deploy_path)
++                if(NOT "${deploy_path}" STREQUAL "")
++                    list(GET ${list_name} ${i} src_file)
++                    _qt_internal_install_qml_module_file("${src_file}" "${deploy_path}")
++                endif()
++            endforeach()
++        endif()
++    endforeach()
++
++    file(GENERATE OUTPUT "${file_name}" CONTENT "${contents}")
++
++endfunction()
++
++if(NOT QT_NO_CREATE_VERSIONLESS_FUNCTIONS)
++    macro(qt_generate_deploy_qml_module_script)
++        qt6_generate_deploy_qml_module_script(${ARGV})
++    endmacro()
++endif()

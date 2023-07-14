@@ -1,21 +1,26 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-import pprint
 
-from conans import ConanFile, tools, CMake
-from distutils.spawn import find_executable
-import os
+from conan import ConanFile
+from conan.tools.cmake import CMake, CMakeToolchain
+from conan.tools.files import patch, load, download, replace_in_file, copy
+from conan.tools.build import cross_building, build_jobs
+from conan.tools.env import VirtualBuildEnv
+from conan.tools.scm import Git
+import json, os
 import shutil
 import configparser
 import tempfile
+import requests
 
+required_conan_version = ">=2.0"
 
-class QtConan(ConanFile):
-
-    def getsubmodules(version, status_filter=None):
-        with tempfile.TemporaryDirectory() as tmpdirname:
-            config = configparser.ConfigParser()
-            tools.download("https://raw.githubusercontent.com/qt/qt5/%s/.gitmodules" % str(version), os.path.join(tmpdirname, "qtmodules.conf"))
+def getsubmodules(version, status_filter=None):
+    with tempfile.TemporaryDirectory() as tmpdirname:
+        config = configparser.ConfigParser()
+        r = requests.get("https://code.qt.io/cgit/qt/qt5.git/plain/.gitmodules?h=%s" % str(version), allow_redirects=True)
+        with open(os.path.join(tmpdirname, "qtmodules.conf"), 'wb') as f:
+            f.write(r.content)
             config.read(os.path.join(tmpdirname, "qtmodules.conf"))
             res = {}
             assert config.sections()
@@ -33,17 +38,30 @@ class QtConan(ConanFile):
                         res[modulename]["depends"] = []
             return res
 
-    version = "6.1.1"
-    description = "Conan.io package for Qt library."
-    url = "https://github.com/Tereius/conan-Qt"
-    homepage = "https://www.qt.io/"
-    license = "http://doc.qt.io/qt-5/lgpl.html"
-    exports = ["LICENSE.md"]
-    exports_sources = ["CMakeLists.txt", "fix_qqmlthread_assertion_dbg.diff", "fix_ios_appstore.diff", "android.patch", "dylibToFramework.sh", "AwesomeQtMetadataParser", "egl_brcm.patch", "eglfs_brcm/CMakeLists.txt"]
-    settings = "os", "arch", "compiler", "build_type"
-    submodules = getsubmodules(version)
-    essential_submodules = getsubmodules(version, "essential")
+class QtConan(ConanFile):
 
+    jsonInfo = json.load(open("info.json", 'r'))
+    # ---Package reference---
+    name = jsonInfo["projectName"]
+    version = jsonInfo["version"]
+    user = jsonInfo["domain"]
+    channel = "stable"
+    # ---Metadata---
+    description = jsonInfo["projectDescription"]
+    license = jsonInfo["license"]
+    author = jsonInfo["vendor"]
+    topics = jsonInfo["topics"]
+    homepage = jsonInfo["homepage"]
+    url = jsonInfo["repository"]
+    # ---Requirements---
+    requires = []
+    tool_requires = ["cmake/3.21.7", "ninja/1.11.1"]
+    # ---Sources---
+    exports = ["info.json"]
+    exports_sources = ["CMakeLists.txt", "AwesomeQtMetadataParser", "patches*"]
+    # ---Binary model---
+    settings = "os", "compiler", "build_type", "arch"
+    submodules = getsubmodules(version)
     options = dict({
         "shared": [True, False],
         "fPIC": [True, False],
@@ -51,37 +69,35 @@ class QtConan(ConanFile):
         "openssl": [True, False],
         "GUI": [True, False],
         "widgets": [True, False],
-        "config": "ANY",
-        }, **{module: [True,False] for module in submodules}
-    )
+        "config": ["ANY"],
+        }, **{module: [True,False] for module in submodules})
+    
+    default_options = dict({
+        "shared": True, 
+        "fPIC": True,
+        "opengl": "no",
+        "openssl": False, 
+        "GUI": False, 
+        "widgets": False, 
+        "config": "none"}, **{module: False for module in submodules})
+    # ---Build---
+    generators = []
+    # ---Folders---
     no_copy_source = True
-    default_options = ("shared=True", "fPIC=True", "opengl=desktop", "openssl=False", "GUI=False", "widgets=False", "config=None") + tuple(module + "=False" for module in submodules) + tuple(module + "=True" for module in essential_submodules)
-    short_paths = True
-
-    def set_name(self):
-
-        is_build = False
-        is_host = False
-
-        if hasattr(self, 'settings_build'):
-            print("----------------- settings_build")
-            is_host = True
-
-        if hasattr(self, 'settings_target'):
-            print("----------------- settings_target")
-            is_build = True
-
-        self.name = "Qt"
 
     def build_requirements(self):
-        self.build_requires("ninja/1.10.2")
-        if tools.cross_building(self):
-            self.build_requires("%s/%s@%s/%s" % (self.name, self.version, self.user, self.channel))
-            for essential_module in self.essential_submodules:
-                setattr(self.build_requires_options[self.name], essential_module, True)
-        self._build_system_requirements()
+        if cross_building(self):
+            # Qt depends on itself if we are cross building. We have to provide the CMake cached variable QT_HOST_PATH
+            self.tool_requires("%s/%s@%s/%s" % (self.name, self.version, self.user, self.channel), 
+            options={"shared": True, "fPIC":True, "config": "host", "opengl": "desktop", "GUI": True, "widgets": True, "qtbase": True, "qtdeclarative": True, "qtshadertools": True, "qttools": True, "qttranslations": True, "qtquick3d": True}, visible=True)
 
-    def configure(self):
+    def config_options(self):
+
+        def enablemodule(self, module):
+            setattr(self.options, module, True)
+            for req in QtConan.submodules[module]["depends"]:
+                enablemodule(self, req)
+
         if self.options.openssl:
             self.requires("OpenSSL/1.1.1b@tereius/stable")
             self.options["OpenSSL"].no_zlib = True
@@ -89,7 +105,7 @@ class QtConan(ConanFile):
                 self.options["OpenSSL"].shared = False
             else:
                 self.options["OpenSSL"].shared = True
-        if self.options.widgets == True:
+        if self.options.widgets == True or self.options.qtdeclarative == True:
             self.options.GUI = True
         if not self.options.GUI:
             self.options.opengl = "no"
@@ -105,16 +121,11 @@ class QtConan(ConanFile):
                 self.options.opengl = "es2"
 
         assert QtConan.version == QtConan.submodules['qtbase']['branch']
-        def enablemodule(self, module):
-            setattr(self.options, module, True)
-            for req in QtConan.submodules[module]["depends"]:
-                enablemodule(self, req)
+
         self.options.qtbase = True
         for module in QtConan.submodules:
             if getattr(self.options, module):
                 enablemodule(self, module)
-        if self.options.qtdeclarative == True:
-            self.options.GUI = True
 
     def _build_system_requirements(self):
         if self.settings.os == "Linux" and tools.os_info.is_linux:
@@ -157,95 +168,134 @@ class QtConan(ConanFile):
                 self.output.warn("Couldn't install system requirements")
 
     def source(self):
-        git = tools.Git()
-        git.clone("https://github.com/qt/qt5.git", branch=self.version, shallow=True)
-        git.run("submodule sync")
-        git.run("submodule init")
-        git.run("submodule update --recursive --depth 1")
+        git = Git(self)
+        git.run("clone git://code.qt.io/qt/qt5.git --branch=%s --depth 1 --single-branch --no-tags --recurse-submodules --shallow-submodules --progress --jobs %u Qt" % (self.version, build_jobs(self)))
         
-        #if "RASPBIAN_ROOTFS" in os.environ:
-        tools.replace_in_file("qtbase/src/corelib/io/qfilesystemengine_unix.cpp", "QT_BEGIN_NAMESPACE", "QT_BEGIN_NAMESPACE\n#undef STATX_BASIC_STATS")
-        tools.replace_in_file("qtbase/cmake/3rdparty/extra-cmake-modules/find-modules/FindEGL.cmake", "cmake_pop_check_state()", "cmake_pop_check_state()\nset(HAVE_EGL ON)")
+        replace_in_file(self, "Qt/qtbase/src/corelib/io/qfilesystemengine_unix.cpp", "QT_BEGIN_NAMESPACE", "QT_BEGIN_NAMESPACE\n#undef STATX_BASIC_STATS")
+        replace_in_file(self, "Qt/qtdeclarative/src/plugins/CMakeLists.txt", "add_subdirectory(qmllint)", "if(QT_FEATURE_qml_debug AND QT_FEATURE_thread)\nadd_subdirectory(qmllint)\nendif()")
         #tools.patch(base_path="qtbase", patch_file="egl_brcm.patch")
+        patch(self, base_path="Qt/qtbase", patch_file=os.path.join("patches","egl_brcm6_5.patch"))
+        patch(self, base_path="Qt/qttools", patch_file=os.path.join("patches","linguist.patch"))
+        patch(self, base_path="Qt/qtbase", patch_file=os.path.join("patches", "Qt6CoreMacros.cmake.patch"))
+        patch(self, base_path="Qt/qtdeclarative", patch_file=os.path.join("patches", "Qt6QmlMacros.cmake.patch"))
         
-        tools.replace_in_file("qtbase/src/plugins/platforms/eglfs/deviceintegration/CMakeLists.txt", "# add_subdirectory(eglfs_brcm) # special case TODO", "add_subdirectory(eglfs_brcm)")
-        shutil.copyfile(os.path.join(self.source_folder, "eglfs_brcm", "CMakeLists.txt"), os.path.join(self.source_folder, "qtbase", "src", "plugins", "platforms", "eglfs", "deviceintegration", "eglfs_brcm", "CMakeLists.txt"))
-        shutil.rmtree(os.path.join(self.source_folder, "eglfs_brcm"))
+        # enable rasp-pi brcm opengl implementation (very unstable - don't use)
+        replace_in_file(self, "Qt/qtbase/src/plugins/platforms/eglfs/deviceintegration/CMakeLists.txt", "# add_subdirectory(eglfs_brcm) # special case TODO", "add_subdirectory(eglfs_brcm)")
+        shutil.copyfile(os.path.join(self.source_folder, "patches", "eglfs_brcm", "CMakeLists.txt"), os.path.join(self.source_folder, "Qt", "qtbase", "src", "plugins", "platforms", "eglfs", "deviceintegration", "eglfs_brcm", "CMakeLists.txt"))
         
-        #tools.replace_in_file("qtbase/cmake/QtBuild.cmake", "function(qt_check_if_tools_will_be_built)", 'function(qt_check_if_tools_will_be_built)\nmessage(STATUS "++++++++++++ ${QT_FORCE_FIND_TOOLS}, ${CMAKE_CROSSCOMPILING}, ${QT_BUILD_TOOLS_WHEN_CROSSCOMPILING}")')
-        #tools.replace_in_file("qtbase/cmake/QtBuild.cmake", 'set(QT_WILL_BUILD_TOOLS ${will_build_tools} CACHE INTERNAL "Are tools going to be built" FORCE)', 'set(QT_WILL_BUILD_TOOLS ${will_build_tools} CACHE INTERNAL "Are tools going to be built" FORCE)\nmessage(STATUS "QT_WILL_BUILD_TOOLS ${QT_WILL_BUILD_TOOLS}, QT_NO_CREATE_TARGETS ${QT_NO_CREATE_TARGETS}")')
-
-    def build(self):
-
-        cmake = CMake(self, generator="Ninja")
+    def generate(self):
+        tc = CMakeToolchain(self, generator="Ninja")
+        ms = VirtualBuildEnv(self)
         module_list = []
-        
         for module in QtConan.submodules:
             if getattr(self.options, module):
                 module_list.append(module)
-                
-        cmake.definitions["BUILD_SUBMODULES:STRING"] = ";".join(module_list)
-        #cmake.verbose = True
-        if tools.cross_building(self):
-            cmake.definitions["QT_HOST_PATH"] = os.environ["QT_HOST_PATH"]
-            cmake.definitions["QT_FORCE_FIND_TOOLS"] = "OFF"
-            cmake.definitions["QT_BUILD_TOOLS_WHEN_CROSSCOMPILING"] = "OFF"
-        cmake.definitions["QT_BUILD_BENCHMARKS"] = "OFF"
-        cmake.definitions["QT_BUILD_MANUAL_TESTS"] = "OFF"
-        cmake.definitions["QT_BUILD_TESTS"] = "OFF"
-        cmake.definitions["QT_BUILD_TESTS_BY_DEFAULT"] = "OFF"
-        cmake.definitions["QT_BUILD_EXAMPLES"] = "OFF"
-        cmake.definitions["QT_BUILD_EXAMPLES_BY_DEFAULT"] = "OFF"
+        self.output.info('Building Qt submodules: %s' % module_list)
+        tc.variables["QT_BUILD_SUBMODULES"] = ";".join(module_list)
+        #tc.variables["CMAKE_FIND_DEBUG_MODE"] = True
+        if cross_building(self):
+            self.output.info('Building Qt submodules: %s' % module_list)
+            tc.blocks["find_paths"].values["cross_building"] = False # Limit the cmake search paths to sysroot only!
+            tc.variables["QT_FORCE_FIND_TOOLS"] = False
+            if self.settings.os == "Android":
+                tc.variables["QT_QMAKE_TARGET_MKSPEC"] = "android-clang"
+            else:
+                # targeting raspberry pi
+                tc.variables["QT_QMAKE_TARGET_MKSPEC"] = "devices/linux-rasp-pi-g++"
+                tc.variables["QT_QPA_DEFAULT_PLATFORM"] = "eglfs"
+                tc.variables["FEATURE_brotli"] = False
+                tc.variables["FEATURE_pcre2"] = True
+                #tc.variables["FEATURE_kms"] = True
+                tc.variables["FEATURE_system_libb2"] = False
+                #tc.variables["FEATURE_libudev"] = False
+                tc.variables["FEATURE_mtdev"] = False
+                tc.variables["FEATURE_tslib"] = False
+                tc.variables["FEATURE_mng"] = False
+                tc.variables["FEATURE_pkg_config"] = True
+                #tc.variables["FEATURE_libinput"] = True
+                tc.variables["FEATURE_UNITY_BUILD"] = False
+                tc.variables["FEATURE_use_gold_linker"] = False
+                tc.variables["FEATURE_use_gold_linker_alias"] = False
+    
+        tc.variables["FEATURE_hunspell"] = False
+        tc.variables["TEST_libclang"] = False
+        tc.variables["FEATURE_clang"] = False
+        tc.variables["FEATURE_clangcpp"] = False
+        tc.variables["QT_BUILD_BENCHMARKS"] = False
+        tc.variables["QT_BUILD_MANUAL_TESTS"] = False
+        tc.variables["QT_BUILD_TESTS"] = False
+        tc.variables["QT_BUILD_TESTS_BY_DEFAULT"] = False
+        tc.variables["QT_BUILD_EXAMPLES"] = False
+        tc.variables["QT_BUILD_EXAMPLES_BY_DEFAULT"] = False
         if self.options.GUI:
-            cmake.definitions["FEATURE_gui"] = "ON"
+            tc.variables["FEATURE_gui"] = True
         else:
-            cmake.definitions["FEATURE_gui"] = "OFF"
+            tc.variables["FEATURE_gui"] = False
         if self.options.widgets:
-            cmake.definitions["FEATURE_widgets"] = "ON"
+            tc.variables["FEATURE_widgets"] = True
         else:
-            cmake.definitions["FEATURE_widgets"] = "OFF"
+            tc.variables["FEATURE_widgets"] = False
         if self.options.shared:
-            cmake.definitions["BUILD_SHARED_LIBS"] = "ON" # FEATURE_shared
+            tc.variables["BUILD_SHARED_LIBS"] = True # FEATURE_shared
         else:
-            cmake.definitions["BUILD_SHARED_LIBS"] = "OFF"
-        cmake.definitions["FEATURE_network"] = "ON"
-        cmake.definitions["FEATURE_sql"] = "OFF"
-        cmake.definitions["FEATURE_printsupport"] = "OFF"
+            tc.variables["BUILD_SHARED_LIBS"] = False
+        tc.variables["FEATURE_network"] = True
+        tc.variables["FEATURE_sql"] = False
+        tc.variables["FEATURE_printsupport"] = False
         #cmake.definitions["FEATURE_testlib"] = "OFF"
-        
-        #cmake.definitions["QT_DEBUG_QT_FIND_PACKAGE"] = 1
-        #cmake.definitions["CMAKE_FIND_DEBUG_MODE"] = "ON"
-        #cmake.definitions["CMAKE_VERBOSE_MAKEFILE"] = "ON"
-        
-        if self.settings.os == "Android":
-            cmake.definitions["ANDROID_SDK_ROOT"] = os.environ["ANDROID_SDK_ROOT"]
+       
+        tc.variables["FEATURE_opengl"] = False
+        tc.variables["FEATURE_opengl_desktop"] = False
+        tc.variables["FEATURE_opengl_dynamic"] = False
+        tc.variables["FEATURE_opengles2"] = False
+        tc.variables["FEATURE_opengles3"] = False
+        tc.variables["FEATURE_opengles31"] = False
+        tc.variables["FEATURE_opengles32"] = False
 
-        if "RASPBIAN_ROOTFS" in os.environ:
-            cmake.definitions["FEATURE_libudev"] = "OFF"
-            cmake.definitions["FEATURE_brotli"] = "OFF"
-            cmake.definitions["FEATURE_mtdev"] = "OFF"
-            cmake.definitions["FEATURE_tslib"] = "OFF"
-        
+        if self.options.opengl == "es2":
+            tc.variables["FEATURE_opengl"] = True
+            tc.variables["FEATURE_opengles2"] = True
+        elif self.options.opengl == "desktop":
+            tc.variables["FEATURE_opengl"] = True
+            tc.variables["FEATURE_opengl_desktop"] = True
+        elif self.options.opengl == "dynamic":
+            tc.variables["FEATURE_opengl"] = True
+            tc.variables["FEATURE_opengl_dynamic"] = True
+
         if self.options.openssl:
-            cmake.definitions["FEATURE_openssl"] = "ON"
-            cmake.definitions["FEATURE_openssl_linked"] = "ON"
-        
-        cmake.configure()
+            tc.variables["FEATURE_openssl"] = True
+            tc.variables["FEATURE_openssl_linked"] = True
+
+        tc.generate()
+        ms.generate()
+
+    def build(self):
+        cmake = CMake(self)
+        cmake.configure(cli_args=["--log-level=STATUS --debug-trycompile"], build_script_folder="Qt")
         cmake.build()
-        cmake.install()
 
     def package(self):
-        self.copy("bin/qt.conf", src="qtbase")
-        if self.settings.os == "Android" and tools.os_info.is_windows:
-            self.copy("libgcc_s_seh-1.dll", dst="bin", src=os.path.join(self.deps_env_info['msys2'].MSYS_ROOT, "mingw64", "bin"))
-            self.copy("libstdc++-6.dll", dst="bin", src=os.path.join(self.deps_env_info['msys2'].MSYS_ROOT, "mingw64", "bin"))
-            self.copy("libwinpthread-1.dll", dst="bin", src=os.path.join(self.deps_env_info['msys2'].MSYS_ROOT, "mingw64", "bin"))
-        if self.settings.os == "iOS" and self.settings.build_type == "Release":
-            self.run("%s/dylibToFramework.sh %s %s" % (self.source_folder, self.package_folder, os.path.join(self.source_folder, "AwesomeQtMetadataParser")))
+        cmake = CMake(self)
+        cmake.install()
 
     def package_info(self):
-        self.env_info.path.append(os.path.join(self.package_folder, "bin"))
-        self.env_info.path.append(os.path.join(self.package_folder, "qttools/bin"))
-        self.output.info('Creating QT_HOST_PATH environment variable: %s' % self.package_folder)
-        self.env_info.QT_HOST_PATH = self.package_folder
-        self.env_info.CMAKE_PREFIX_PATH.append(self.package_folder)
+        if self.options.config == "host":
+            self.output.info('Creating QT_HOST_PATH environment variable: %s' % self.package_folder)
+            self.buildenv_info.define_path("QT_HOST_PATH", self.package_folder)
+            self.buildenv_info.prepend_path("PATH", os.path.join(self.package_folder, "bin"))
+            self.buildenv_info.prepend_path("PATH", os.path.join(self.package_folder, "qttools", "bin"))
+            self.cpp_info.includedirs = []
+            self.cpp_info.libdirs = []
+            self.cpp_info.bindirs = []
+        else:
+            self.runenv_info.prepend_path("QML_IMPORT_PATH", os.path.join(self.package_folder, "qml"))
+            self.cpp_info.builddirs = ["lib/cmake"]
+        
+        if not cross_building(self):
+            self.buildenv_info.prepend_path("PATH", os.path.join(self.package_folder, "bin"))
+            self.buildenv_info.prepend_path("PATH", os.path.join(self.package_folder, "qttools", "bin"))
+        else:
+            # Forward the build env from the Qt Host
+            Qt = self.dependencies.build[self.name]
+            self.output.info('Forwarding build environment from Qt Host: %s' % Qt.package_folder)
+            self.buildenv_info.compose_env(Qt.buildenv_info)

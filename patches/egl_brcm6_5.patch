@@ -1,0 +1,14 @@
+diff --git a/src/gui/configure.cmake b/src/gui/configure.cmake
+index d8319c120b..b04dc3b158 100644
+--- a/src/gui/configure.cmake
++++ b/src/gui/configure.cmake
+@@ -200,6 +200,8 @@ qt_config_compile_test(egl_brcm
+     LABEL "Broadcom EGL (Raspberry Pi)"
+     LIBRARIES
+         EGL::EGL
++        GLESv2::GLESv2
++    COMPILE_OPTIONS "-lbcm_host"
+     CODE
+ "#include <EGL/egl.h>
+ #include <bcm_host.h>
+
