@@ -1,0 +1,13 @@
+diff --git a/src/quick/util/qquickanimation.cpp b/src/quick/util/qquickanimation.cpp
+index 548ec841..bb13a416 100644
+--- a/src/quick/util/qquickanimation.cpp
++++ b/src/quick/util/qquickanimation.cpp
+@@ -130,7 +130,7 @@ void QQuickAbstractAnimationPrivate::commence()
+     QQmlProperties properties;
+ 
+     auto *newInstance = q->transition(actions, properties, QQuickAbstractAnimation::Forward);
+-    Q_ASSERT(newInstance != animationInstance);
++    Q_ASSERT(!newInstance || newInstance != animationInstance);
+     delete animationInstance;
+     animationInstance = newInstance;
+ 

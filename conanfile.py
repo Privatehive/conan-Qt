@@ -58,7 +58,7 @@ class QtConan(ConanFile):
     tool_requires = ["cmake/3.21.7", "ninja/1.11.1"]
     # ---Sources---
     exports = ["info.json"]
-    exports_sources = ["CMakeLists.txt", "AwesomeQtMetadataParser", "patches*"]
+    exports_sources = ["CMakeLists.txt", "AwesomeQtMetadataParser", "patches/*"]
     # ---Binary model---
     settings = "os", "compiler", "build_type", "arch"
     submodules = getsubmodules(version)
@@ -176,8 +176,10 @@ class QtConan(ConanFile):
         #tools.patch(base_path="qtbase", patch_file="egl_brcm.patch")
         patch(self, base_path="Qt/qtbase", patch_file=os.path.join("patches","egl_brcm6_5.patch"))
         patch(self, base_path="Qt/qttools", patch_file=os.path.join("patches","linguist.patch"))
-        patch(self, base_path="Qt/qtbase", patch_file=os.path.join("patches", "Qt6CoreMacros.cmake.patch"))
-        patch(self, base_path="Qt/qtdeclarative", patch_file=os.path.join("patches", "Qt6QmlMacros.cmake.patch"))
+        patch(self, base_path="Qt/qtbase", patch_file=os.path.join("patches", "Qt6CoreMacros_%s.cmake.patch" % self.version))
+        patch(self, base_path="Qt/qtbase", patch_file=os.path.join("patches", "QTBUG-117950.patch"))
+        patch(self, base_path="Qt/qtdeclarative", patch_file=os.path.join("patches", "Qt6QmlMacros_%s.cmake.patch" % self.version))
+        patch(self, base_path="Qt/qtdeclarative", patch_file=os.path.join("patches", "QTBUG-111570.patch"))
         
         # enable rasp-pi brcm opengl implementation (very unstable - don't use)
         replace_in_file(self, "Qt/qtbase/src/plugins/platforms/eglfs/deviceintegration/CMakeLists.txt", "# add_subdirectory(eglfs_brcm) # special case TODO", "add_subdirectory(eglfs_brcm)")
