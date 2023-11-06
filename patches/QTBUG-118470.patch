@@ -1,0 +1,13 @@
+diff --git a/src/core/qqmlpermissions_p.h b/src/core/qqmlpermissions_p.h
+index 83692d4..6bba2d1 100644
+--- a/src/core/qqmlpermissions_p.h
++++ b/src/core/qqmlpermissions_p.h
+@@ -26,7 +26,7 @@
+ #include <QtCore/qproperty.h>
+ #include <QtCore/qglobal.h>
+ 
+-#include <QtGui/qguiapplication.h>
++#include <QtCore/qcoreapplication.h>
+ 
+ QT_BEGIN_NAMESPACE
+ 

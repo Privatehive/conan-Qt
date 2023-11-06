@@ -180,6 +180,7 @@ class QtConan(ConanFile):
         patch(self, base_path="Qt/qtbase", patch_file=os.path.join("patches", "QTBUG-117950.patch"))
         patch(self, base_path="Qt/qtdeclarative", patch_file=os.path.join("patches", "Qt6QmlMacros_%s.cmake.patch" % self.version))
         patch(self, base_path="Qt/qtdeclarative", patch_file=os.path.join("patches", "QTBUG-111570.patch"))
+        patch(self, base_path="Qt/qtdeclarative", patch_file=os.path.join("patches", "QTBUG-118470.patch"))
         
         # enable rasp-pi brcm opengl implementation (very unstable - don't use)
         replace_in_file(self, "Qt/qtbase/src/plugins/platforms/eglfs/deviceintegration/CMakeLists.txt", "# add_subdirectory(eglfs_brcm) # TODO: QTBUG-112769", "add_subdirectory(eglfs_brcm)")
