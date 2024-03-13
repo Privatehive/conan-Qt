@@ -1,0 +1,41 @@
+diff --git a/CMakeLists.txt b/CMakeLists.txt
+index f979951..94c7cce 100644
+--- a/CMakeLists.txt
++++ b/CMakeLists.txt
+@@ -27,7 +27,7 @@ endif()
+ # Need to search for positioning only after we make sure that it's not WASM.
+ # Otherwise we'll get an "QtPositioning not found" error in WASM build.
+ find_package(Qt6 ${PROJECT_VERSION} CONFIG OPTIONAL_COMPONENTS
+-    Qml Quick Network Test QuickTest Positioning PositioningQuick QuickShapesPrivate
++    Qml Quick Network Positioning PositioningQuick QuickShapesPrivate
+ )
+ 
+ find_package(Qt6 ${PROJECT_VERSION} QUIET CONFIG OPTIONAL_COMPONENTS
+@@ -43,6 +43,6 @@ macro(assertTargets)
+     endforeach()
+ endmacro()
+ 
+-assertTargets(Qml Quick Network Test QuickTest Positioning PositioningQuick QuickShapesPrivate)
++assertTargets(Qml Quick Network Positioning PositioningQuick QuickShapesPrivate)
+ 
+ qt_build_repo()
+diff --git a/tests/auto/CMakeLists.txt b/tests/auto/CMakeLists.txt
+index af91607..72d5076 100644
+--- a/tests/auto/CMakeLists.txt
++++ b/tests/auto/CMakeLists.txt
+@@ -2,7 +2,6 @@
+ 
+ # TODO: enable location tests later!
+ if(TARGET Qt::Location)
+-     add_subdirectory(geotestplugin)
+      add_subdirectory(qplace)
+      add_subdirectory(qplaceattribute)
+      add_subdirectory(qplacecategory)
+@@ -62,7 +61,6 @@ if (TARGET Qt::Location AND TARGET Qt::Quick AND QT6_IS_SHARED_LIBS_BUILD)
+      if (NOT ANDROID)
+           add_subdirectory(declarative_mappolyline)
+           add_subdirectory(declarative_location_core)
+-          add_subdirectory(declarativetestplugin)
+           add_subdirectory(declarative_ui)
+      endif()
+ endif()

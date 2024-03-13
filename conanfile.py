@@ -89,7 +89,46 @@ class QtConan(ConanFile):
         if cross_building(self):
             # Qt depends on itself if we are cross building. We have to provide the CMake cached variable QT_HOST_PATH
             self.tool_requires("%s/%s@%s/%s" % (self.name, self.version, self.user, self.channel), 
-            options={"shared": True, "fPIC":True, "config": "host", "opengl": "desktop", "GUI": True, "widgets": True, "qtbase": True, "qtdeclarative": True, "qtshadertools": True, "qttools": True, "qttranslations": True, "qtquick3d": True}, visible=True)
+            options={"shared": True, "fPIC":True, "config": "host", "opengl": "desktop", "GUI": True, "widgets": True, "qtbase": True, "qtdeclarative": True, "qtshadertools": True, "qttools": True, "qttranslations": True, "qtquick3d": True, "qtremoteobjects": True}, visible=True)
+
+    def requirements(self):
+        if self.options.openssl:
+            self.requires("openssl/3.2.0@%s/stable" % self.user)
+        if self.options.qtmultimedia:
+            self.requires("ffmpeg/6.0")
+
+    def configure(self):
+        if self.options.openssl:
+            self.options["openssl"].shared = self.options.shared
+        if self.options.qtmultimedia:
+            self.options["ffmpeg"].shared = self.options.shared
+            self.options["ffmpeg"].swresample = True
+            self.options["ffmpeg"].with_asm = False
+            self.options["ffmpeg"].with_sdl = False
+            self.options["ffmpeg"].with_ssl = False
+            self.options["ffmpeg"].with_xcb = False
+            self.options["ffmpeg"].with_lzma = False
+            self.options["ffmpeg"].with_opus = False
+            self.options["ffmpeg"].with_zlib = False
+            self.options["ffmpeg"].with_bzip2 = False
+            self.options["ffmpeg"].with_pulse = False
+            self.options["ffmpeg"].with_vaapi = False
+            self.options["ffmpeg"].with_vdpau = False
+            self.options["ffmpeg"].with_libvpx = False
+            self.options["ffmpeg"].with_vorbis = False
+            self.options["ffmpeg"].with_vulkan = False
+            self.options["ffmpeg"].with_zeromq = False
+            self.options["ffmpeg"].with_libalsa = False
+            self.options["ffmpeg"].with_libwebp = False
+            self.options["ffmpeg"].with_libx264 = False
+            self.options["ffmpeg"].with_libx265 = False
+            self.options["ffmpeg"].with_freetype = False
+            self.options["ffmpeg"].with_libiconv = False
+            self.options["ffmpeg"].with_openh264 = False
+            self.options["ffmpeg"].with_openjpeg = False
+            self.options["ffmpeg"].with_programs = False
+            self.options["ffmpeg"].with_libfdk_aac = False
+            self.options["ffmpeg"].with_libmp3lame = False
 
     def config_options(self):
 
@@ -98,13 +137,6 @@ class QtConan(ConanFile):
             for req in QtConan.submodules[module]["depends"]:
                 enablemodule(self, req)
 
-        if self.options.openssl:
-            self.requires("OpenSSL/1.1.1b@tereius/stable")
-            self.options["OpenSSL"].no_zlib = True
-            if self.settings.os == 'Emscripten':
-                self.options["OpenSSL"].shared = False
-            else:
-                self.options["OpenSSL"].shared = True
         if self.options.widgets == True or self.options.qtdeclarative == True:
             self.options.GUI = True
         if not self.options.GUI:
@@ -177,10 +209,13 @@ class QtConan(ConanFile):
         patch(self, base_path="Qt/qtbase", patch_file=os.path.join("patches","egl_brcm6_5.patch"))
         patch(self, base_path="Qt/qttools", patch_file=os.path.join("patches","linguist.patch"))
         patch(self, base_path="Qt/qtbase", patch_file=os.path.join("patches", "Qt6CoreMacros_%s.cmake.patch" % self.version))
-        patch(self, base_path="Qt/qtbase", patch_file=os.path.join("patches", "QTBUG-117950.patch"))
+        #patch(self, base_path="Qt/qtbase", patch_file=os.path.join("patches", "QTBUG-117950.patch"))
         patch(self, base_path="Qt/qtdeclarative", patch_file=os.path.join("patches", "Qt6QmlMacros_%s.cmake.patch" % self.version))
         patch(self, base_path="Qt/qtdeclarative", patch_file=os.path.join("patches", "QTBUG-111570.patch"))
-        patch(self, base_path="Qt/qtdeclarative", patch_file=os.path.join("patches", "QTBUG-118470.patch"))
+        #patch(self, base_path="Qt/qtdeclarative", patch_file=os.path.join("patches", "QTBUG-118470.patch"))
+        #patch(self, base_path="Qt/qtdeclarative", patch_file=os.path.join("patches", "QTBUG-119715.patch"))
+        patch(self, base_path="Qt/qtmultimedia", patch_file=os.path.join("patches", "ffmpeg_plugin_jni_onload_fix.patch"))
+        patch(self, base_path="Qt/qtlocation", patch_file=os.path.join("patches", "disable_test_qtlocation.patch"))
         
         # enable rasp-pi brcm opengl implementation (very unstable - don't use)
         replace_in_file(self, "Qt/qtbase/src/plugins/platforms/eglfs/deviceintegration/CMakeLists.txt", "# add_subdirectory(eglfs_brcm) # TODO: QTBUG-112769", "add_subdirectory(eglfs_brcm)")
@@ -220,16 +255,34 @@ class QtConan(ConanFile):
                 tc.variables["FEATURE_use_gold_linker"] = False
                 tc.variables["FEATURE_use_gold_linker_alias"] = False
     
+        tc.variables["FEATURE_icu"] = False # always major version breakage
         tc.variables["FEATURE_hunspell"] = False
         tc.variables["TEST_libclang"] = False
         tc.variables["FEATURE_clang"] = False
         tc.variables["FEATURE_clangcpp"] = False
+        tc.variables["FEATURE_testlib"] = False
+        tc.variables["FEATURE_private_tests"] = False
+        tc.variables["FEATURE_testlib_selfcover"] = False
+        tc.variables["FEATURE_batch_test_support"] = False
+        tc.variables["FEATURE_itemmodeltester"] = False
         tc.variables["QT_BUILD_BENCHMARKS"] = False
         tc.variables["QT_BUILD_MANUAL_TESTS"] = False
         tc.variables["QT_BUILD_TESTS"] = False
         tc.variables["QT_BUILD_TESTS_BY_DEFAULT"] = False
         tc.variables["QT_BUILD_EXAMPLES"] = False
         tc.variables["QT_BUILD_EXAMPLES_BY_DEFAULT"] = False
+        if self.options.qtmultimedia:
+            tc.variables["FFMPEG_DIR"] = self.dependencies["ffmpeg"].package_folder
+            tc.variables["QT_DEFAULT_MEDIA_BACKEND"] = "ffmpeg"
+            tc.variables["FEATURE_ffmpeg"] = True
+            tc.variables["FEATURE_wmf"] = False
+            tc.variables["FEATURE_gstreamer"] = False
+            tc.variables["FEATURE_gstreamer_1_0"] = False
+            tc.variables["FEATURE_gstreamer_app"] = False
+            tc.variables["FEATURE_gstreamer_gl"] = False
+            tc.variables["FEATURE_gstreamer_photography"] = False
+            tc.variables["FEATURE_avfoundation"] = False
+            # For Android no FEATURE_mediacodec flag exists
         if self.options.GUI:
             tc.variables["FEATURE_gui"] = True
         else:
@@ -268,6 +321,7 @@ class QtConan(ConanFile):
         if self.options.openssl:
             tc.variables["FEATURE_openssl"] = True
             tc.variables["FEATURE_openssl_linked"] = True
+            tc.variables["OPENSSL_ROOT_DIR"] = self.dependencies["openssl"].package_folder
 
         tc.generate()
         ms.generate()

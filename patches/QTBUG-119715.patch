@@ -1,0 +1,145 @@
+From dbff24f501074372a56971ad0959583cb8134ed4 Mon Sep 17 00:00:00 2001
+From: Santhosh Kumar <santhosh.kumar.selvaraj@qt.io>
+Date: Wed, 13 Dec 2023 14:50:45 +0100
+Subject: [PATCH] Set correct first child in quick scroll view
+
+The patch 5eaf5afa981a2eb3ce2059c3e2b21382c9829728 update pane to set
+correct first child depending on content item configuration.
+
+But, ScrollView always has Flickable as its content item and so,
+setting first child depending on content item (as similar to pane)
+will not be correct. Its better that the first child can be provided
+by the corresponding control itself.
+
+This patch adds a new function getFirstChild() in QQuickPanePrivate
+which can be overridden by inheriting control
+(here QQuickScrollViewPrivate) to set its respective first child.
+
+Fixes: QTBUG-119715
+Pick-to: 6.5
+Change-Id: I61058813e1b18323daf01b467b906d6b62acc9e2
+Reviewed-by: Mitch Curtis <mitch.curtis@qt.io>
+(cherry picked from commit 9e0dd093b520afe0b8efad910c2ed84d97a388b7)
+Reviewed-by: Qt Cherry-pick Bot <cherrypick_bot@qt-project.org>
+(cherry picked from commit ebeda378f890cf89c9ef75525394337975c62160)
+---
+
+diff --git a/src/quicktemplates/qquickpane.cpp b/src/quicktemplates/qquickpane.cpp
+index 2def00b..3c94154 100644
+--- a/src/quicktemplates/qquickpane.cpp
++++ b/src/quicktemplates/qquickpane.cpp
+@@ -156,12 +156,7 @@
+ {
+     Q_Q(QQuickPane);
+ 
+-    // The first child varies depending on how the content item is declared.
+-    // If it's declared as a child of the Pane, it will be parented to the
+-    // default QQuickContentItem. If it's assigned to the contentItem property
+-    // directly, QQuickControl::contentItem will be used."
+-    QQuickItem *newFirstChild = ((qobject_cast<QQuickContentItem *>(contentItem))
+-        ? contentChildItems().value(0) : *contentItem);
++    QQuickItem *newFirstChild = getFirstChild();
+ 
+     if (newFirstChild != firstChild) {
+         if (firstChild)
+@@ -191,6 +186,16 @@
+     return 0;
+ }
+ 
++QQuickItem* QQuickPanePrivate::getFirstChild() const
++{
++    // The first child varies depending on how the content item is declared.
++    // If it's declared as a child of the Pane, it will be parented to the
++    // default QQuickContentItem. If it's assigned to the contentItem property
++    // directly, QQuickControl::contentItem will be used.
++    return (qobject_cast<QQuickContentItem *>(contentItem)
++                    ? contentChildItems().value(0) : contentItem.data());
++}
++
+ qreal QQuickPanePrivate::getContentHeight() const
+ {
+     if (!contentItem)
+diff --git a/src/quicktemplates/qquickpane_p_p.h b/src/quicktemplates/qquickpane_p_p.h
+index fc77d52..e9964c7 100644
+--- a/src/quicktemplates/qquickpane_p_p.h
++++ b/src/quicktemplates/qquickpane_p_p.h
+@@ -31,6 +31,7 @@
+     virtual QQmlListProperty<QObject> contentData();
+     virtual QQmlListProperty<QQuickItem> contentChildren();
+     virtual QList<QQuickItem *> contentChildItems() const;
++    virtual QQuickItem *getFirstChild() const;
+ 
+     QQuickItem *getContentItem() override;
+ 
+diff --git a/src/quicktemplates/qquickscrollview.cpp b/src/quicktemplates/qquickscrollview.cpp
+index e14e8e8..5f7c7bf 100644
+--- a/src/quicktemplates/qquickscrollview.cpp
++++ b/src/quicktemplates/qquickscrollview.cpp
+@@ -98,6 +98,7 @@
+     QQmlListProperty<QObject> contentData() override;
+     QQmlListProperty<QQuickItem> contentChildren() override;
+     QList<QQuickItem *> contentChildItems() const override;
++    QQuickItem* getFirstChild() const override;
+ 
+     QQuickItem *getContentItem() override;
+ 
+@@ -162,6 +163,11 @@
+     return ensureFlickable(ContentItemFlag::DoNotSet);
+ }
+ 
++QQuickItem* QQuickScrollViewPrivate::getFirstChild() const
++{
++    return contentChildItems().value(0);
++}
++
+ QQuickFlickable *QQuickScrollViewPrivate::ensureFlickable(ContentItemFlag contentItemFlag)
+ {
+     Q_Q(QQuickScrollView);
+diff --git a/tests/auto/quickcontrols/controls/data/tst_scrollview.qml b/tests/auto/quickcontrols/controls/data/tst_scrollview.qml
+index d8868b0..f5f9e88 100644
+--- a/tests/auto/quickcontrols/controls/data/tst_scrollview.qml
++++ b/tests/auto/quickcontrols/controls/data/tst_scrollview.qml
+@@ -146,6 +146,7 @@
+             }
+         }
+     }
++
+     Component {
+         id: scrollableTextAreaWithSibling
+         ScrollView {
+@@ -728,4 +729,35 @@
+ 
+         // Shouldn't crash.
+     }
++
++    Component {
++        id: scrollViewContentItemComp
++
++        ScrollView {
++            id: scrollView
++            anchors.fill: parent
++            Column {
++                width: parent.width
++                Repeater {
++                    model: 20
++                    Rectangle {
++                        width: scrollView.width
++                        height: 60
++                        color: (index % 2 == 0) ? "red" : "green"
++                    }
++                }
++            }
++        }
++    }
++
++    function test_scrollViewContentItemSize() {
++        let scrollview = createTemporaryObject(scrollViewContentItemComp, testCase)
++        verify(scrollview)
++        let contentItem = scrollview.contentItem
++        waitForRendering(contentItem)
++        compare(contentItem.contentWidth, 400)
++        compare(contentItem.contentHeight, 1200)
++        compare(scrollview.contentWidth, 400)
++        compare(scrollview.contentHeight, 1200)
++    }
+ }
