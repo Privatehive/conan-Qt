@@ -1,5 +1,18 @@
+diff --git a/configure.cmake b/configure.cmake
+index 9fbbe2c..afd5982 100644
+--- a/configure.cmake
++++ b/configure.cmake
+@@ -17,7 +17,7 @@
+ # Presumably because 6.0 ClangConfig.cmake files are not good enough?
+ # In any case explicitly request a minimum version of 8.x for now, otherwise
+ # building with CMake will fail at compilation time.
+-qt_find_package(WrapLibClang 8 PROVIDED_TARGETS WrapLibClang::WrapLibClang)
++#qt_find_package(WrapLibClang 8 PROVIDED_TARGETS WrapLibClang::WrapLibClang)
+ # special case end
+ 
+ if(TARGET WrapLibClang::WrapLibClang)
 diff --git a/src/linguist/CMakeLists.txt b/src/linguist/CMakeLists.txt
-index 16ff9f559..7a2c35d09 100644
+index d85254b..3434853 100644
 --- a/src/linguist/CMakeLists.txt
 +++ b/src/linguist/CMakeLists.txt
 @@ -14,7 +14,7 @@ add_subdirectory(lrelease)
