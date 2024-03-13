@@ -16,7 +16,7 @@ jobs:
         parameters:
           conanEnv:
             {
-              CONAN_OPTIONS: "Qt:shared=True,Qt:GUI=True,Qt:opengl=desktop,Qt:qtbase=True,Qt:widgets=True,Qt:qtdeclarative=True,Qt:qtsvg=True",
+              CONAN_OPTIONS: "qt:shared=True,qt:GUI=True,qt:opengl=desktop,qt:qtbase=True,qt:widgets=True,qt:qtdeclarative=True,qt:qtsvg=True",
               CONAN_HOST_PROFILE_PATH: "./hostProfiles/androidArmv7.profile",
               CONAN_REMOTES: "https://conan.privatehive.de/artifactory/api/conan/public-conan",
             }
@@ -30,7 +30,7 @@ jobs:
         parameters:
           conanEnv:
             {
-              CONAN_OPTIONS: "Qt:shared=True,Qt:GUI=True,Qt:opengl=desktop,Qt:qtbase=True,Qt:widgets=True,Qt:qtdeclarative=True,Qt:qtsvg=True",
+              CONAN_OPTIONS: "qt:shared=True,qt:GUI=True,qt:opengl=desktop,qt:qtbase=True,qt:widgets=True,qt:qtdeclarative=True,qt:qtsvg=True",
               CONAN_REMOTES: "https://conan.privatehive.de/artifactory/api/conan/public-conan",
             }
 
@@ -43,7 +43,7 @@ jobs:
         parameters:
           conanEnv:
             {
-              CONAN_OPTIONS: "Qt:shared=True,Qt:GUI=True,Qt:opengl=desktop,Qt:qtbase=True,Qt:widgets=True,Qt:qtdeclarative=True,Qt:qtsvg=True",
+              CONAN_OPTIONS: "qt:shared=True,qt:GUI=True,qt:opengl=desktop,qt:qtbase=True,qt:widgets=True,qt:qtdeclarative=True,qt:qtsvg=True",
               CONAN_REMOTES: "https://conan.privatehive.de/artifactory/api/conan/public-conan",
             }
 
