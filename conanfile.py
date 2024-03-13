@@ -170,7 +170,7 @@ class QtConan(ConanFile):
                     pack_names.append("libgl1-mesa-dev")
             if self.options.qtmultimedia:
                 pack_names.extend(["libasound2-dev", "libpulse-dev"])
-            apt.install(pack_names, update=True, check=False)
+            apt.install(pack_names, update=True)
 
     def source(self):
         git = Git(self)
