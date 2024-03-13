@@ -5,6 +5,7 @@ from conan import ConanFile
 from conan.tools.cmake import CMake, CMakeToolchain
 from conan.tools.files import patch, load, download, replace_in_file, copy
 from conan.tools.build import cross_building, build_jobs
+from conan.tools.system.package_manager import Apt
 from conan.tools.env import VirtualBuildEnv
 from conan.tools.scm import Git
 import json, os
@@ -159,45 +160,17 @@ class QtConan(ConanFile):
             if getattr(self.options, module):
                 enablemodule(self, module)
 
-    def _build_system_requirements(self):
-        if self.settings.os == "Linux" and tools.os_info.is_linux:
-            installer = tools.SystemPackageTool()
-            if tools.os_info.with_apt:
-                pack_names = []
-                arch_suffix = ''
-                if self.settings.arch == "x86":
-                    arch_suffix = ':i386'
-                elif self.settings.arch == "x86_64":
-                    arch_suffix = ':amd64'
-                if self.options.GUI:
-                    pack_names.extend(["libxcb1-dev", "libx11-dev", "libfontconfig1-dev", "libfreetype6-dev", "libxext-dev", "libxfixes-dev", "libxi-dev", "libxrender-dev", "libx11-xcb-dev", "libxcb-glx0-dev", "libxkbcommon-dev"])
-                    if self.options.opengl == "desktop":
-                        pack_names.append("libgl1-mesa-dev")
-                if self.options.qtmultimedia:
-                    pack_names.extend(["libasound2-dev", "libpulse-dev", "libgstreamer1.0-dev", "libgstreamer-plugins-base1.0-dev"])
-                if self.options.qtwebengine:
-                    pack_names.extend(["libssl-dev", "libxcursor-dev", "libxcomposite-dev", "libxdamage-dev", "libxrandr-dev", "libdbus-1-dev", "libfontconfig1-dev", "libcap-dev", "libxtst-dev", "libpulse-dev", "libudev-dev", "libpci-dev", "libnss3-dev", "libasound2-dev", "libxss-dev", "libegl1-mesa-dev", "gperf", "bison"])       
-                for package in pack_names:
-                    installer.install(package + arch_suffix)
-            elif tools.os_info.with_yum:
-                pack_names = []
-                arch_suffix = ''
-                if self.settings.arch == "x86":
-                    arch_suffix = '.i686'
-                elif self.settings.arch == "x86_64":
-                    arch_suffix = '.x86_64'
-                if self.options.GUI:
-                    pack_names.extend(["libxcb-devel", "libX11-devel", "fontconfig-devel", "freetype-devel", "libXext-devel", "libXfixes-devel", "libXi-devel", "libXrender-devel", "libxkbcommon-devel"])
-                    if self.options.opengl == "desktop":
-                        pack_names.append("mesa-libGL-devel")
-                if self.options.qtmultimedia:
-                    pack_names.extend(["alsa-lib-devel", "pulseaudio-libs-devel", "gstreamer-devel", "gstreamer-plugins-base-devel"])
-                if self.options.qtwebengine:
-                    pack_names.extend(["libgcrypt-devel", "libgcrypt", "pciutils-devel", "nss-devel", "libXtst-devel", "gperf", "cups-devel", "pulseaudio-libs-devel", "libgudev1-devel", "systemd-devel", "libcap-devel", "alsa-lib-devel", "flex", "bison", "libXrandr-devel", "libXcomposite-devel", "libXcursor-devel", "fontconfig-devel"])
-                for package in pack_names:
-                    installer.install(package + arch_suffix)
-            else:
-                self.output.warn("Couldn't install system requirements")
+    def system_requirements(self):
+        if self.settings.os == "Linux":
+            apt = Apt(self)
+            pack_names = []
+            if self.options.GUI:
+                pack_names.extend(["libfontconfig1-dev", "libfreetype6-dev", "libx11-dev", "libx11-xcb-dev", "libxext-dev", "libxfixes-dev", "libxi-dev", "libxrender-dev", "libxcb1-dev", "libxcb-cursor-dev", "libxcb-glx0-dev", "libxcb-keysyms1-dev", "libxcb-image0-dev", "libxcb-shm0-dev", "libxcb-icccm4-dev", "libxcb-sync-dev", "libxcb-xfixes0-dev", "libxcb-shape0-dev", "libxcb-randr0-dev", "libxcb-render-util0-dev", "libxcb-util-dev", "libxcb-xinerama0-dev", "libxcb-xkb-dev", "libxkbcommon-dev", "libxkbcommon-x11-dev"])
+                if self.options.opengl == "desktop":
+                    pack_names.append("libgl1-mesa-dev")
+            if self.options.qtmultimedia:
+                pack_names.extend(["libasound2-dev", "libpulse-dev"])
+            apt.install(pack_names, update=True, check=False)
 
     def source(self):
         git = Git(self)
