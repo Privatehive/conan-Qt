@@ -3,7 +3,7 @@
 
 from conan import ConanFile
 from conan.tools.cmake import CMake, CMakeToolchain
-from conan.tools.files import patch, load, download, replace_in_file, copy
+from conan.tools.files import patch, load, get, rmdir, replace_in_file, copy
 from conan.tools.build import cross_building, build_jobs
 from conan.tools.system.package_manager import Apt
 from conan.tools.env import VirtualBuildEnv
@@ -173,9 +173,12 @@ class QtConan(ConanFile):
             apt.install(pack_names, update=True)
 
     def source(self):
-        git = Git(self)
-        git.run("clone git://code.qt.io/qt/qt5.git --branch=%s --depth 1 --single-branch --no-tags --recurse-submodules --shallow-submodules --progress --jobs %u Qt" % (self.version, build_jobs(self)))
-        
+        #git = Git(self)
+        #git.run("clone git://code.qt.io/qt/qt5.git --branch=%s --depth 1 --single-branch --no-tags --recurse-submodules --shallow-submodules --progress --jobs %u Qt" % (self.version, build_jobs(self)))
+        major_version=self.version.split(".")[0]
+        minor_version=self.version.split(".")[1]
+        get(self, "https://download.qt.io/official_releases/qt/%s.%s/%s/single/qt-everywhere-src-%s.tar.xz" % (major_version, minor_version, self.version, self.version), destination="Qt", strip_root=True)
+        rmdir(self, "Qt/qtwebengine")
         replace_in_file(self, "Qt/qtbase/src/corelib/io/qfilesystemengine_unix.cpp", "QT_BEGIN_NAMESPACE", "QT_BEGIN_NAMESPACE\n#undef STATX_BASIC_STATS")
         replace_in_file(self, "Qt/qtdeclarative/src/plugins/CMakeLists.txt", "add_subdirectory(qmllint)", "if(QT_FEATURE_qml_debug AND QT_FEATURE_thread)\nadd_subdirectory(qmllint)\nendif()")
         #tools.patch(base_path="qtbase", patch_file="egl_brcm.patch")
