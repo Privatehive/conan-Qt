@@ -49,9 +49,9 @@ jobs:
 
   - job: Upload
     dependsOn:
-      - Android
+      #- Android
       - Linux
-      - Windows
+      #- Windows
     condition: and(succeeded(), in(variables['Build.Reason'], 'IndividualCI', 'BatchedCI'))
     pool:
       vmImage: "ubuntu-latest"
