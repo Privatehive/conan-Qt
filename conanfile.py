@@ -70,6 +70,8 @@ class QtConan(ConanFile):
         "openssl": [True, False],
         "GUI": [True, False],
         "widgets": [True, False],
+        "widgetsstyle": [None, "android", "fusion", "mac", "stylesheet", "windows", "windowsvista"],
+        "quick2style": [None, "basic", "fusion", "imagine", "ios", "macos", "material", "universal", "windows"],
         "config": ["ANY"],
         }, **{module: [True,False] for module in submodules})
     
@@ -79,7 +81,9 @@ class QtConan(ConanFile):
         "opengl": "no",
         "openssl": False, 
         "GUI": False, 
-        "widgets": False, 
+        "widgets": False,
+        "widgetsstyle": None,
+        "quick2style": None,
         "config": "none"}, **{module: False for module in submodules})
     # ---Build---
     generators = []
@@ -160,6 +164,12 @@ class QtConan(ConanFile):
             if getattr(self.options, module):
                 enablemodule(self, module)
 
+        if self.options.qtdeclarative is False:
+            self.options.rm_safe("quick2style")
+
+        if self.options.widgets is False:
+            self.options.rm_safe("widgetsstyle")
+
     def system_requirements(self):
         if self.settings.os == "Linux":
             apt = Apt(self)
@@ -178,7 +188,6 @@ class QtConan(ConanFile):
         major_version=self.version.split(".")[0]
         minor_version=self.version.split(".")[1]
         get(self, "https://download.qt.io/official_releases/qt/%s.%s/%s/single/qt-everywhere-src-%s.tar.xz" % (major_version, minor_version, self.version, self.version), destination="Qt", strip_root=True)
-        rmdir(self, "Qt/qtwebengine")
         replace_in_file(self, "Qt/qtbase/src/corelib/io/qfilesystemengine_unix.cpp", "QT_BEGIN_NAMESPACE", "QT_BEGIN_NAMESPACE\n#undef STATX_BASIC_STATS")
         replace_in_file(self, "Qt/qtdeclarative/src/plugins/CMakeLists.txt", "add_subdirectory(qmllint)", "if(QT_FEATURE_qml_debug AND QT_FEATURE_thread)\nadd_subdirectory(qmllint)\nendif()")
         #tools.patch(base_path="qtbase", patch_file="egl_brcm.patch")
@@ -192,6 +201,7 @@ class QtConan(ConanFile):
         #patch(self, base_path="Qt/qtdeclarative", patch_file=os.path.join("patches", "QTBUG-119715.patch"))
         patch(self, base_path="Qt/qtmultimedia", patch_file=os.path.join("patches", "ffmpeg_plugin_jni_onload_fix.patch"))
         patch(self, base_path="Qt/qtlocation", patch_file=os.path.join("patches", "disable_test_qtlocation.patch"))
+        patch(self, base_path="Qt/qtquick3d", patch_file=os.path.join("patches", "QTBUG-123015.patch"))
         
         # enable rasp-pi brcm opengl implementation (very unstable - don't use)
         replace_in_file(self, "Qt/qtbase/src/plugins/platforms/eglfs/deviceintegration/CMakeLists.txt", "# add_subdirectory(eglfs_brcm) # TODO: QTBUG-112769", "add_subdirectory(eglfs_brcm)")
@@ -263,14 +273,39 @@ class QtConan(ConanFile):
             tc.variables["FEATURE_gui"] = True
         else:
             tc.variables["FEATURE_gui"] = False
+
         if self.options.widgets:
             tc.variables["FEATURE_widgets"] = True
+            if self.options.widgetsstyle:
+                tc.variables["FEATURE_style_android"] = False
+                tc.variables["FEATURE_style_fusion"] = False
+                tc.variables["FEATURE_style_mac"] = False
+                tc.variables["FEATURE_style_stylesheet"] = False
+                tc.variables["FEATURE_style_windows"] = False
+                tc.variables["FEATURE_style_windowsvista"] = False
+                tc.variables["FEATURE_style_" + str(self.options.widgetsstyle)] = True
         else:
             tc.variables["FEATURE_widgets"] = False
+
+        if self.options.qtdeclarative:
+            tc.variables["FEATURE_qml_debug"] = self.settings.build_type == "Debug"
+            tc.variables["FEATURE_qml_profiler"] = self.settings.build_type == "Debug"
+            if self.options.quick2style:
+                tc.variables["FEATURE_quickcontrols2_basic"] = True
+                tc.variables["FEATURE_quickcontrols2_fusion"] = False
+                tc.variables["FEATURE_quickcontrols2_imagine"] = False
+                tc.variables["FEATURE_quickcontrols2_ios"] = False
+                tc.variables["FEATURE_quickcontrols2_macos"] = False
+                tc.variables["FEATURE_quickcontrols2_material"] = False
+                tc.variables["FEATURE_quickcontrols2_universal"] = False
+                tc.variables["FEATURE_quickcontrols2_windows"] = False
+                tc.variables["FEATURE_quickcontrols2_" + str(self.options.quick2style)] = True
+
         if self.options.shared:
             tc.variables["BUILD_SHARED_LIBS"] = True # FEATURE_shared
         else:
             tc.variables["BUILD_SHARED_LIBS"] = False
+
         tc.variables["FEATURE_network"] = True
         tc.variables["FEATURE_sql"] = False
         tc.variables["FEATURE_printsupport"] = False

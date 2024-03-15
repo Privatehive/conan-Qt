@@ -1,0 +1,76 @@
+From bbf0741ac26691989e093ae95d220fdde32217c2 Mon Sep 17 00:00:00 2001
+From: Inho Lee <inho.lee@qt.io>
+Date: Wed, 06 Mar 2024 10:07:07 +0100
+Subject: [PATCH] Fix build-failure with no-qml-debug
+
+A dependency on qml_debug was not properly set.
+
+Fixes: QTBUG-123015
+Pick-to: 6.5
+Change-Id: I238d538229d86f96a992221037485c23310ac4da
+Reviewed-by: Christian Strømme <christian.stromme@qt.io>
+Reviewed-by: Antti Määttä <antti.maatta@qt.io>
+(cherry picked from commit aa937e6fb5c20dcd3d5d45d46cf3128f935c8b2c)
+Reviewed-by: Qt Cherry-pick Bot <cherrypick_bot@qt-project.org>
+(cherry picked from commit 36a3ca350cfb9f2628921515c09f2f905090e89b)
+---
+
+diff --git a/src/quick3dparticles/qquick3dparticlemodelblendparticle.cpp b/src/quick3dparticles/qquick3dparticlemodelblendparticle.cpp
+index d16ede9..1e2eb2f 100644
+--- a/src/quick3dparticles/qquick3dparticlemodelblendparticle.cpp
++++ b/src/quick3dparticles/qquick3dparticlemodelblendparticle.cpp
+@@ -567,9 +567,11 @@
+         QQuick3DObjectPrivate::get(m_model)->spatialNode = spatialNode;
+         Q_QUICK3D_PROFILE_ASSIGN_ID_SG(this, spatialNode);
+     }
++#if QT_CONFIG(qml_debug)
+     auto *geometrySpatialNode = QQuick3DObjectPrivate::get(m_modelGeometry)->spatialNode;
+     if (geometrySpatialNode)
+         Q_QUICK3D_PROFILE_ASSIGN_ID_SG(this, geometrySpatialNode);
++#endif
+ 
+     QSSGRenderModel *model = static_cast<QSSGRenderModel *>(spatialNode);
+ 
+diff --git a/src/runtimerender/qssgrendershadercache.cpp b/src/runtimerender/qssgrendershadercache.cpp
+index 9ad1673..d81060b 100644
+--- a/src/runtimerender/qssgrendershadercache.cpp
++++ b/src/runtimerender/qssgrendershadercache.cpp
+@@ -531,7 +531,11 @@
+             qDebug("Loading of vertex and fragment stages succeeded");
+     }
+ 
++#if !QT_CONFIG(qml_debug)
++    Q_UNUSED(obj);
++#else
+     Q_QUICK3D_PROFILE_END_WITH_ID(QQuick3DProfiler::Quick3DLoadShader, 0, obj.profilingId);
++#endif
+ 
+     QSSGShaderCacheKey cacheKey(inKey);
+     cacheKey.m_features = inFeatures;
+diff --git a/src/utils/qquick3dprofiler.cpp b/src/utils/qquick3dprofiler.cpp
+index 07a270f..2de70ba 100644
+--- a/src/utils/qquick3dprofiler.cpp
++++ b/src/utils/qquick3dprofiler.cpp
+@@ -3,7 +3,6 @@
+ 
+ #include "qquick3dprofiler_p.h"
+ 
+-#include <QtQml/private/qqmlabstractprofileradapter_p.h>
+ #include <QtQml/qqmlfile.h>
+ 
+ #include <QtCore/qcoreapplication.h>
+@@ -11,6 +10,8 @@
+ 
+ QT_BEGIN_NAMESPACE
+ 
++#if QT_CONFIG(qml_debug)
++
+ // Enable to debug profiling without client app.
+ //#define PROFILE_WITHOUT_CLIENT
+ 
+@@ -132,4 +133,5 @@
+     m_timer = t;
+ }
+ 
++#endif
+ QT_END_NAMESPACE
