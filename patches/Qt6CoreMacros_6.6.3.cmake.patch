@@ -1,0 +1,13 @@
+diff --git a/src/corelib/Qt6CoreMacros.cmake b/src/corelib/Qt6CoreMacros.cmake
+index 32d0693311..b7cc1c96ac 100644
+--- a/src/corelib/Qt6CoreMacros.cmake
++++ b/src/corelib/Qt6CoreMacros.cmake
+@@ -2630,7 +2630,7 @@ function(_qt_internal_setup_deploy_support)
+         set(safe_target_file
+             "$<TARGET_FILE:$<IF:${have_deploy_tool},${target_if_exists},${target}>>")
+         set(__QT_DEPLOY_TOOL "$<IF:${have_deploy_tool},${safe_target_file},${fallback}>")
+-    elseif(UNIX AND NOT APPLE AND NOT ANDROID AND NOT CMAKE_CROSSCOMPILING)
++    elseif(UNIX AND NOT APPLE AND NOT ANDROID)
+         set(__QT_DEPLOY_TOOL "GRD")
+     else()
+         # Android is handled as a build target, not via this install-based approach.
