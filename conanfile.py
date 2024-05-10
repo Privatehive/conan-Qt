@@ -196,19 +196,12 @@ class QtConan(ConanFile):
         replace_in_file(self, "Qt/qtdeclarative/src/qml/Qt6QmlMacros.cmake", "elseif(UNIX AND NOT APPLE AND NOT ANDROID AND NOT CMAKE_CROSSCOMPILING", "elseif(UNIX AND NOT APPLE AND NOT ANDROID")
         #patch(self, base_path="Qt/qtbase", patch_file=os.path.join("patches", "QTBUG-117950.patch"))
         replace_in_file(self, "Qt/qtdeclarative/src/qml/Qt6QmlMacros.cmake", "string(APPEND content \"prefer :${prefix}\\n\")", "")
-
-        #replace_in_file(self, "Qt/qtbase/cmake/FindWrapOpenSSL.cmake", "find_package(WrapOpenSSLHeaders ${WrapOpenSSL_FIND_VERSION})", "find_package(OpenSSL ${WrapOpenSSL_FIND_VERSION})\nset(OPENSSL_INCLUDE_DIR \"${OPENSSL_ROOT_DIR}/${OPENSSL_INCLUDE_DIR}\")")
-        #replace_in_file(self, "Qt/qtbase/cmake/FindWrapOpenSSL.cmake", "set(WrapOpenSSL_FOUND ON)", "set(WrapOpenSSL_FOUND ON))")
-        #Imported target "WrapOpenSSLHeaders::WrapOpenSSLHeaders" includes
-        #non-existent path "/include"
-        replace_in_file(self, "Qt/qtbase/cmake/FindWrapOpenSSLHeaders.cmake", "${OPENSSL_INCLUDE_DIR}", "${OPENSSL_ROOT_DIR}/${OPENSSL_INCLUDE_DIR}")
-        replace_in_file(self, "Qt/qtbase/cmake/FindWrapOpenSSLHeaders.cmake", "# _FOUND variable.", "set(OPENSSL_INCLUDE_DIR \"${OPENSSL_ROOT_DIR}/${OPENSSL_INCLUDE_DIR}\" PARENT_SCOPE)")
-
         #patch(self, base_path="Qt/qtdeclarative", patch_file=os.path.join("patches", "QTBUG-111570.patch"))
         #patch(self, base_path="Qt/qtdeclarative", patch_file=os.path.join("patches", "QTBUG-118470.patch"))
         #patch(self, base_path="Qt/qtdeclarative", patch_file=os.path.join("patches", "QTBUG-119715.patch"))
         patch(self, base_path="Qt/qtmultimedia", patch_file=os.path.join("patches", "ffmpeg_plugin_jni_onload_fix.patch"))
         patch(self, base_path="Qt/qtlocation", patch_file=os.path.join("patches", "disable_test_qtlocation.patch"))
+        patch(self, base_path="Qt/qtbase", patch_file=os.path.join("patches", "openssl.patch"))
         #patch(self, base_path="Qt/qtquick3d", patch_file=os.path.join("patches", "QTBUG-123015.patch"))
         
         # enable rasp-pi brcm opengl implementation (very unstable - don't use)
@@ -251,6 +244,17 @@ class QtConan(ConanFile):
     
         tc.variables["FEATURE_icu"] = False # always major version breakage
         tc.variables["FEATURE_hunspell"] = False
+        tc.variables["FEATURE_mimetype"] = False
+        tc.variables["FEATURE_mimetype_database"] = False
+        tc.variables["FEATURE_gssapi"] = False
+        tc.variables["FEATURE_backtrace"] = False
+        tc.variables["FEATURE_glib"] = False
+        tc.variables["FEATURE_brotli"] = False
+        tc.variables["FEATURE_slog2"] = False
+        tc.variables["FEATURE_zstd"] = False
+        tc.variables["FEATURE_libudev"] = False
+        tc.variables["FEATURE_system_libb2"] = False
+        tc.variables["FEATURE_system_pcre2"] = False
         tc.variables["TEST_libclang"] = False
         tc.variables["FEATURE_clang"] = False
         tc.variables["FEATURE_clangcpp"] = False
@@ -262,6 +266,7 @@ class QtConan(ConanFile):
         tc.variables["QT_BUILD_BENCHMARKS"] = False
         tc.variables["QT_BUILD_MANUAL_TESTS"] = False
         tc.variables["QT_BUILD_TESTS"] = False
+        tc.variables["QT_USE_VCPKG"] = False
         tc.variables["QT_BUILD_TESTS_BY_DEFAULT"] = False
         tc.variables["QT_BUILD_EXAMPLES"] = False
         tc.variables["QT_BUILD_EXAMPLES_BY_DEFAULT"] = False
@@ -341,8 +346,8 @@ class QtConan(ConanFile):
             tc.variables["FEATURE_openssl"] = True
             tc.variables["FEATURE_opensslv11"] = False
             tc.variables["FEATURE_opensslv30"] = True
-            tc.variables["FEATURE_openssl_linked"] = True
-            tc.variables["FEATURE_openssl_runtime"] = False
+            tc.variables["FEATURE_openssl_linked"] = False # linker error
+            tc.variables["FEATURE_openssl_runtime"] = True
             tc.variables["OPENSSL_ROOT_DIR"] = self.dependencies["openssl"].package_folder
         else:
             tc.variables["FEATURE_openssl"] = False
