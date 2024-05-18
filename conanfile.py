@@ -56,7 +56,7 @@ class QtConan(ConanFile):
     url = jsonInfo["repository"]
     # ---Requirements---
     requires = []
-    tool_requires = ["cmake/3.21.7", "ninja/1.11.1"]
+    tool_requires = ["cmake/[>=3.21.7]", "ninja/[>=1.11.1]"]
     # ---Sources---
     exports = ["info.json"]
     exports_sources = ["CMakeLists.txt", "AwesomeQtMetadataParser", "patches/*"]
@@ -201,7 +201,6 @@ class QtConan(ConanFile):
         #patch(self, base_path="Qt/qtdeclarative", patch_file=os.path.join("patches", "QTBUG-119715.patch"))
         patch(self, base_path="Qt/qtmultimedia", patch_file=os.path.join("patches", "ffmpeg_plugin_jni_onload_fix.patch"))
         patch(self, base_path="Qt/qtlocation", patch_file=os.path.join("patches", "disable_test_qtlocation.patch"))
-        patch(self, base_path="Qt/qtbase", patch_file=os.path.join("patches", "openssl.patch"))
         #patch(self, base_path="Qt/qtquick3d", patch_file=os.path.join("patches", "QTBUG-123015.patch"))
         
         # enable rasp-pi brcm opengl implementation (very unstable - don't use)
@@ -218,9 +217,9 @@ class QtConan(ConanFile):
         self.output.info('Building Qt submodules: %s' % module_list)
         tc.variables["QT_BUILD_SUBMODULES"] = ";".join(module_list)
         #tc.variables["CMAKE_FIND_DEBUG_MODE"] = True
+        tc.blocks.remove("find_paths") # CMAKE_FIND_PACKAGE_PREFER_CONFIG should be false (the default). We want to use Find modules first
         if cross_building(self):
             self.output.info('Building Qt submodules: %s' % module_list)
-            tc.blocks["find_paths"].values["cross_building"] = False # Limit the cmake search paths to sysroot only!
             tc.variables["QT_FORCE_FIND_TOOLS"] = False
             if self.settings.os == "Android":
                 tc.variables["QT_QMAKE_TARGET_MKSPEC"] = "android-clang"
@@ -244,8 +243,6 @@ class QtConan(ConanFile):
     
         tc.variables["FEATURE_icu"] = False # always major version breakage
         tc.variables["FEATURE_hunspell"] = False
-        tc.variables["FEATURE_mimetype"] = False
-        tc.variables["FEATURE_mimetype_database"] = False
         tc.variables["FEATURE_gssapi"] = False
         tc.variables["FEATURE_backtrace"] = False
         tc.variables["FEATURE_glib"] = False
@@ -263,6 +260,7 @@ class QtConan(ConanFile):
         tc.variables["FEATURE_testlib_selfcover"] = False
         tc.variables["FEATURE_batch_test_support"] = False
         tc.variables["FEATURE_itemmodeltester"] = False
+        tc.variables["FEATURE_pixeltool"] = False
         tc.variables["QT_BUILD_BENCHMARKS"] = False
         tc.variables["QT_BUILD_MANUAL_TESTS"] = False
         tc.variables["QT_BUILD_TESTS"] = False
@@ -346,8 +344,8 @@ class QtConan(ConanFile):
             tc.variables["FEATURE_openssl"] = True
             tc.variables["FEATURE_opensslv11"] = False
             tc.variables["FEATURE_opensslv30"] = True
-            tc.variables["FEATURE_openssl_linked"] = False # linker error
-            tc.variables["FEATURE_openssl_runtime"] = True
+            tc.variables["FEATURE_openssl_linked"] = True
+            tc.variables["FEATURE_openssl_runtime"] = False
             tc.variables["OPENSSL_ROOT_DIR"] = self.dependencies["openssl"].package_folder
         else:
             tc.variables["FEATURE_openssl"] = False
