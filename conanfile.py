@@ -12,16 +12,20 @@ import json, os
 import shutil
 import configparser
 import tempfile
-import requests
+import http.client
 
 required_conan_version = ">=2.0"
 
 def getsubmodules(version, status_filter=None):
     with tempfile.TemporaryDirectory() as tmpdirname:
         config = configparser.ConfigParser()
-        r = requests.get("https://code.qt.io/cgit/qt/qt5.git/plain/.gitmodules?h=%s" % str(version), allow_redirects=True)
         with open(os.path.join(tmpdirname, "qtmodules.conf"), 'wb') as f:
-            f.write(r.content)
+            conn = http.client.HTTPSConnection("code.qt.io")
+            conn.request("GET", "/cgit/qt/qt5.git/plain/.gitmodules?h=%s" % str(version))
+            r1 = conn.getresponse()
+            f.write(r1.read())
+            f.close()
+            conn.close()
             config.read(os.path.join(tmpdirname, "qtmodules.conf"))
             res = {}
             assert config.sections()
@@ -355,7 +359,7 @@ class QtConan(ConanFile):
 
     def build(self):
         cmake = CMake(self)
-        cmake.configure(cli_args=["--log-level=STATUS --debug-trycompile"], build_script_folder="Qt")
+        cmake.configure(variables={"QT_AUTODETECT_ANDROID": "ON" if self.settings.os == "Android" else "OFF"}, cli_args=["--log-level=STATUS --debug-trycompile"], build_script_folder="Qt")
         cmake.build()
 
     def package(self):
