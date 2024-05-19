@@ -194,6 +194,7 @@ class QtConan(ConanFile):
         get(self, "https://download.qt.io/official_releases/qt/%s.%s/%s/single/qt-everywhere-src-%s.tar.xz" % (major_version, minor_version, self.version, self.version), destination="Qt", strip_root=True)
         replace_in_file(self, "Qt/qtbase/src/corelib/io/qfilesystemengine_unix.cpp", "QT_BEGIN_NAMESPACE", "QT_BEGIN_NAMESPACE\n#undef STATX_BASIC_STATS")
         replace_in_file(self, "Qt/qtdeclarative/src/plugins/CMakeLists.txt", "add_subdirectory(qmllint)", "if(QT_FEATURE_qml_debug AND QT_FEATURE_thread)\nadd_subdirectory(qmllint)\nendif()")
+        replace_in_file(self, "Qt/qtbase/cmake/QtAutoDetectHelpers.cmake", "if(NOT android_detected)", "if(\"OFF\")")
         patch(self, base_path="Qt/qttools", patch_file=os.path.join("patches","linguist.patch"))
         #patch(self, base_path="Qt/qtbase", patch_file=os.path.join("patches", "Qt6CoreMacros_%s.cmake.patch" % self.version))
         replace_in_file(self, "Qt/qtbase/src/corelib/Qt6CoreMacros.cmake", "elseif(UNIX AND NOT APPLE AND NOT ANDROID AND NOT CMAKE_CROSSCOMPILING)", "elseif(UNIX AND NOT APPLE AND NOT ANDROID)")
@@ -359,7 +360,7 @@ class QtConan(ConanFile):
 
     def build(self):
         cmake = CMake(self)
-        cmake.configure(variables={"QT_AUTODETECT_ANDROID": "ON" if self.settings.os == "Android" else "OFF"}, cli_args=["--log-level=STATUS --debug-trycompile"], build_script_folder="Qt")
+        cmake.configure(cli_args=["--log-level=STATUS --debug-trycompile"], build_script_folder="Qt")
         cmake.build()
 
     def package(self):
