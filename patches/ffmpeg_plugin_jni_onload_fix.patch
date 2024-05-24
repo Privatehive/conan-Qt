@@ -1,8 +1,8 @@
 diff --git a/src/plugins/multimedia/ffmpeg/qffmpegmediaintegration.cpp b/src/plugins/multimedia/ffmpeg/qffmpegmediaintegration.cpp
-index 7abded14c..000699dd3 100644
+index 291ca1111..e61364c03 100644
 --- a/src/plugins/multimedia/ffmpeg/qffmpegmediaintegration.cpp
 +++ b/src/plugins/multimedia/ffmpeg/qffmpegmediaintegration.cpp
-@@ -349,15 +349,12 @@ Q_DECL_EXPORT jint JNICALL JNI_OnLoad(JavaVM *vm, void * /*reserved*/)
+@@ -352,15 +352,12 @@ Q_DECL_EXPORT jint JNICALL JNI_OnLoad(JavaVM *vm, void * /*reserved*/)
  
      QT_USE_NAMESPACE
      void *environment;
