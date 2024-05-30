@@ -8,6 +8,5 @@ compiler.threads=posix
 compiler.exception=seh
 build_type=Release
 [options]
-qt/*:opengl=desktop
 [tool_requires]
 mingw-builds/11.2.0

@@ -206,6 +206,7 @@ class QtConan(ConanFile):
         #patch(self, base_path="Qt/qtdeclarative", patch_file=os.path.join("patches", "QTBUG-119715.patch"))
         patch(self, base_path="Qt/qtmultimedia", patch_file=os.path.join("patches", "ffmpeg_plugin_jni_onload_fix.patch"))
         patch(self, base_path="Qt/qtlocation", patch_file=os.path.join("patches", "disable_test_qtlocation.patch"))
+        patch(self, base_path="Qt/qtdeclarative", patch_file=os.path.join("patches", "qml_plugin_init.patch"))
         #patch(self, base_path="Qt/qtquick3d", patch_file=os.path.join("patches", "QTBUG-123015.patch"))
         
         # enable rasp-pi brcm opengl implementation (very unstable - don't use)
