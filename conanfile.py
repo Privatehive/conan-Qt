@@ -95,6 +95,28 @@ class QtConan(ConanFile):
         "widgetsstyle": None,
         "quick2style": None,
         "config": "none"}, **{module: False for module in submodules})
+    host_options = {**default_options, **{
+        "shared": True, 
+        "fPIC": True,
+        "lto": False,
+        "opengl": "desktop",
+        "openssl": False, 
+        "GUI": True, 
+        "widgets": True,
+        "dbus": False,
+        "xml": True,
+        "widgetsstyle": None,
+        "quick2style": None,
+        "config": "host",
+        # modules
+        "qtbase": True,
+        "qtdeclarative": True,
+        "qtshadertools": True,
+        "qttools": True,
+        "qttranslations": True,
+        "qtquick3d": True,
+        "qtremoteobjects": True,
+    }}
     # ---Build---
     generators = []
     # ---Folders---
@@ -104,20 +126,45 @@ class QtConan(ConanFile):
         if cross_building(self):
             # Qt depends on itself if we are cross building. We have to provide the CMake cached variable QT_HOST_PATH
             self.tool_requires("%s/%s@%s/%s" % (self.name, self.version, self.user, self.channel), 
-            options={"shared": True, "fPIC":True, "config": "host", "opengl": "desktop", "GUI": True, "widgets": True, "qtbase": True, "qtdeclarative": True, "qtshadertools": True, "qttools": True, "qttranslations": True, "qtquick3d": True, "qtremoteobjects": True}, visible=True)
+            options={"config": "host"}, visible=True)
 
     def requirements(self):
-        if self.options.openssl:
+        if self.get_option("openssl"):
             self.requires("openssl/3.2.0@%s/stable" % self.user)
-        if self.options.qtmultimedia:
+        if self.get_option("qtmultimedia"):
             self.requires("ffmpeg/6.0")
 
-    def configure(self):
+    def config_options(self):
 
-        if self.options.openssl:
-            self.options["openssl"].shared = self.options.shared
-        if self.options.qtmultimedia:
-            self.options["ffmpeg"].shared = self.options.shared
+        assert QtConan.version == QtConan.submodules['qtbase']['branch']
+
+        self.options.qtbase = True
+
+    @property
+    def is_host_build(self):
+        return self.options.get_safe("config") == "host"
+
+    def get_option(self, key: str):
+        if self.is_host_build:
+            if key in self.host_options:
+                return self.host_options[key]
+            else:
+                return False
+        else:
+            return self.options.get_safe(key)
+
+    def configure(self):
+        if self.is_host_build:
+            for option in self.default_options:
+                if str(option) != "config":
+                    self.options.rm_safe(option)
+        else:
+            self.options.rm_safe("config")
+
+        if self.get_option("openssl"):
+            self.options["openssl"].shared = self.get_option("shared")
+        if self.get_option("qtmultimedia"):
+            self.options["ffmpeg"].shared = self.get_option("shared")
             self.options["ffmpeg"].swresample = True
             self.options["ffmpeg"].with_asm = False
             self.options["ffmpeg"].with_sdl = False
@@ -145,52 +192,16 @@ class QtConan(ConanFile):
             self.options["ffmpeg"].with_programs = False
             self.options["ffmpeg"].with_libfdk_aac = False
             self.options["ffmpeg"].with_libmp3lame = False
-        
-
-    def config_options(self):
-
-        def enablemodule(self, module):
-            setattr(self.options, module, True)
-            for req in QtConan.submodules[module]["depends"]:
-                enablemodule(self, req)
-
-        if self.options.widgets == True or self.options.qtdeclarative == True:
-            self.options.GUI = True
-        if not self.options.GUI:
-            self.options.opengl = "no"
-        if self.settings.os == "Android":
-            if self.options.opengl != "no":
-                self.options.opengl = "es2"
-        if self.settings.os == "iOS":
-            if self.options.opengl != "no":
-                self.options.opengl = "es2"
-        if self.settings.os == 'Emscripten':
-            self.options.shared = False
-            if self.options.opengl != "no":
-                self.options.opengl = "es2"
-
-        assert QtConan.version == QtConan.submodules['qtbase']['branch']
-
-        self.options.qtbase = True
-        for module in QtConan.submodules:
-            if getattr(self.options, module):
-                enablemodule(self, module)
-
-        if self.options.qtdeclarative is False:
-            self.options.rm_safe("quick2style")
-
-        if self.options.widgets is False:
-            self.options.rm_safe("widgetsstyle")
 
     def system_requirements(self):
         if self.settings.os == "Linux":
             apt = Apt(self)
             pack_names = []
-            if self.options.GUI:
+            if self.get_option("GUI"):
                 pack_names.extend(["libfontconfig1-dev", "libfreetype6-dev", "libx11-dev", "libx11-xcb-dev", "libxext-dev", "libxfixes-dev", "libxi-dev", "libxrender-dev", "libxcb1-dev", "libxcb-cursor-dev", "libxcb-glx0-dev", "libxcb-keysyms1-dev", "libxcb-image0-dev", "libxcb-shm0-dev", "libxcb-icccm4-dev", "libxcb-sync-dev", "libxcb-xfixes0-dev", "libxcb-shape0-dev", "libxcb-randr0-dev", "libxcb-render-util0-dev", "libxcb-util-dev", "libxcb-xinerama0-dev", "libxcb-xkb-dev", "libxkbcommon-dev", "libxkbcommon-x11-dev"])
-                if self.options.opengl == "desktop":
+                if self.get_option("opengl") == "desktop":
                     pack_names.append("libgl1-mesa-dev")
-            if self.options.qtmultimedia:
+            if self.get_option("qtmultimedia"):
                 pack_names.extend(["libasound2-dev", "libpulse-dev"])
             apt.install(pack_names, update=True)
 
@@ -221,8 +232,12 @@ class QtConan(ConanFile):
         ms = VirtualBuildEnv(self)
         module_list = []
         for module in QtConan.submodules:
-            if getattr(self.options, module):
-                module_list.append(module)
+            if self.is_host_build:
+                if self.host_options[module]:
+                    module_list.append(module)                
+            else:
+                if getattr(self.options, module):
+                    module_list.append(module)
         self.output.info('Building Qt submodules: %s' % module_list)
         tc.variables["QT_BUILD_SUBMODULES"] = ";".join(module_list)
         #tc.variables["CMAKE_FIND_DEBUG_MODE"] = True
@@ -297,7 +312,7 @@ class QtConan(ConanFile):
         tc.variables["QT_BUILD_EXAMPLES"] = False
         tc.variables["QT_BUILD_EXAMPLES_BY_DEFAULT"] = False
 
-        if self.options.dbus:
+        if self.get_option("dbus"):
             tc.variables["FEATURE_dbus"] = True
             tc.variables["FEATURE_dbus_linked"] = False
             tc.variables["FEATURE_qdbus"] = True
@@ -305,12 +320,12 @@ class QtConan(ConanFile):
             tc.variables["FEATURE_dbus"] = False
             tc.variables["FEATURE_qdbus"] = False
 
-        if self.options.xml:
+        if self.get_option("xml"):
             tc.variables["FEATURE_xml"] = True
         else:
             tc.variables["FEATURE_xml"] = False
 
-        if self.options.qtmultimedia:
+        if self.get_option("qtmultimedia"):
             tc.variables["FFMPEG_DIR"] = self.dependencies["ffmpeg"].package_folder
             tc.variables["QT_DEFAULT_MEDIA_BACKEND"] = "ffmpeg"
             tc.variables["FEATURE_ffmpeg"] = True
@@ -322,28 +337,28 @@ class QtConan(ConanFile):
             tc.variables["FEATURE_gstreamer_photography"] = False
             tc.variables["FEATURE_avfoundation"] = False
             # For Android no FEATURE_mediacodec flag exists
-        if self.options.GUI:
+        if self.get_option("GUI"):
             tc.variables["FEATURE_gui"] = True
         else:
             tc.variables["FEATURE_gui"] = False
 
-        if self.options.widgets:
+        if self.get_option("widgets"):
             tc.variables["FEATURE_widgets"] = True
-            if self.options.widgetsstyle:
+            if self.get_option("widgetsstyle"):
                 tc.variables["FEATURE_style_android"] = False
                 tc.variables["FEATURE_style_fusion"] = False
                 tc.variables["FEATURE_style_mac"] = False
                 tc.variables["FEATURE_style_stylesheet"] = False
                 tc.variables["FEATURE_style_windows"] = False
                 tc.variables["FEATURE_style_windowsvista"] = False
-                tc.variables["FEATURE_style_" + str(self.options.widgetsstyle)] = True
+                tc.variables["FEATURE_style_" + str(self.self.get_option("widgetsstyle"))] = True
         else:
             tc.variables["FEATURE_widgets"] = False
 
-        if self.options.qtdeclarative:
+        if self.get_option("qtdeclarative"):
             tc.variables["FEATURE_qml_debug"] = self.settings.build_type == "Debug"
             tc.variables["FEATURE_qml_profiler"] = self.settings.build_type == "Debug"
-            if self.options.quick2style:
+            if self.get_option("quick2style"):
                 tc.variables["FEATURE_quickcontrols2_basic"] = True
                 tc.variables["FEATURE_quickcontrols2_fusion"] = False
                 tc.variables["FEATURE_quickcontrols2_imagine"] = False
@@ -352,14 +367,14 @@ class QtConan(ConanFile):
                 tc.variables["FEATURE_quickcontrols2_material"] = False
                 tc.variables["FEATURE_quickcontrols2_universal"] = False
                 tc.variables["FEATURE_quickcontrols2_windows"] = False
-                tc.variables["FEATURE_quickcontrols2_" + str(self.options.quick2style)] = True
+                tc.variables["FEATURE_quickcontrols2_" + str(self.get_option("quick2style"))] = True
 
-        if self.options.shared:
+        if self.get_option("shared"):
             tc.variables["BUILD_SHARED_LIBS"] = True # FEATURE_shared
         else:
             tc.variables["BUILD_SHARED_LIBS"] = False
 
-        if self.options.lto:
+        if self.get_option("lto"):
             tc.variables["CMAKE_INTERPROCEDURAL_OPTIMIZATION"] = True
             tc.variables["FEATURE_ltcg"] = True # link time optimization
         else:
@@ -381,17 +396,17 @@ class QtConan(ConanFile):
         tc.variables["FEATURE_opengles31"] = False
         tc.variables["FEATURE_opengles32"] = False
 
-        if self.options.opengl == "es2":
+        if self.get_option("opengl") == "es2":
             tc.variables["FEATURE_opengl"] = True
             tc.variables["FEATURE_opengles2"] = True
-        elif self.options.opengl == "desktop":
+        elif self.get_option("opengl") == "desktop":
             tc.variables["FEATURE_opengl"] = True
             tc.variables["FEATURE_opengl_desktop"] = True
-        elif self.options.opengl == "dynamic":
+        elif self.get_option("opengl") == "dynamic":
             tc.variables["FEATURE_opengl"] = True
             tc.variables["FEATURE_opengl_dynamic"] = True
 
-        if self.options.openssl:
+        if self.get_option("openssl"):
             tc.variables["FEATURE_openssl"] = True
             tc.variables["FEATURE_opensslv11"] = False
             tc.variables["FEATURE_opensslv30"] = True
@@ -400,13 +415,16 @@ class QtConan(ConanFile):
             tc.variables["OPENSSL_ROOT_DIR"] = self.dependencies["openssl"].package_folder
         else:
             tc.variables["FEATURE_openssl"] = False
+            tc.variables["FEATURE_openssl_linked"] = False
+            tc.variables["FEATURE_openssl_runtime"] = False
 
         tc.generate()
         ms.generate()
 
     def build(self):
         cmake = CMake(self)
-        cmake.configure(cli_args=["--log-level=STATUS --debug-trycompile"], build_script_folder="Qt")
+        #cmake.configure(cli_args=["--log-level=STATUS --debug-trycompile"], build_script_folder="Qt")
+        cmake.configure(build_script_folder="Qt")
         cmake.build()
 
     def package(self):
@@ -414,7 +432,7 @@ class QtConan(ConanFile):
         cmake.install()
 
     def package_info(self):
-        if self.options.config == "host":
+        if self.is_host_build:
             self.output.info('Creating QT_HOST_PATH environment variable: %s' % self.package_folder)
             self.buildenv_info.define_path("QT_HOST_PATH", self.package_folder)
             self.buildenv_info.prepend_path("PATH", os.path.join(self.package_folder, "bin"))
