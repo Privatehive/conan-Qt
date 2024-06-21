@@ -223,6 +223,8 @@ class QtConan(ConanFile):
         patch(self, base_path="Qt/qtlocation", patch_file=os.path.join("patches", "disable_test_qtlocation.patch"))
         patch(self, base_path="Qt/qtdeclarative", patch_file=os.path.join("patches", "qml_plugin_init.patch"))
         
+        rmdir(self, "Qt/qtwebengine")
+
         # enable rasp-pi brcm opengl implementation (very unstable - don't use)
         #replace_in_file(self, "Qt/qtbase/src/plugins/platforms/eglfs/deviceintegration/CMakeLists.txt", "# add_subdirectory(eglfs_brcm) # TODO: QTBUG-112769", "add_subdirectory(eglfs_brcm)")
         #shutil.copyfile(os.path.join(self.source_folder, "patches", "eglfs_brcm", "CMakeLists.txt"), os.path.join(self.source_folder, "Qt", "qtbase", "src", "plugins", "platforms", "eglfs", "deviceintegration", "eglfs_brcm", "CMakeLists.txt"))
