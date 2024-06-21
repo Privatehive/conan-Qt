@@ -9,7 +9,7 @@ resources:
 stages:
 - stage: build_qt_host
   jobs:
-    - job: Linux Qt-Host
+    - job: Linux_Qt_Host
       pool:
         vmImage: "ubuntu-20.04"
       timeoutInMinutes: 0
@@ -24,7 +24,7 @@ stages:
 
     - job: Upload
       dependsOn:
-        - Linux Qt-Host
+        - Linux_Qt_Host
       condition: and(succeeded(), in(variables['Build.Reason'], 'IndividualCI', 'BatchedCI'))
       pool:
         vmImage: "ubuntu-latest"
