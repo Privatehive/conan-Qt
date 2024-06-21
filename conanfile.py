@@ -70,10 +70,13 @@ class QtConan(ConanFile):
     options = dict({
         "shared": [True, False],
         "fPIC": [True, False],
+        "lto": [True, False],
         "opengl": ["no", "es2", "desktop", "dynamic"],
         "openssl": [True, False],
         "GUI": [True, False],
         "widgets": [True, False],
+        "dbus": [True, False],
+        "xml": [True, False],
         "widgetsstyle": [None, "android", "fusion", "mac", "stylesheet", "windows", "windowsvista"],
         "quick2style": [None, "basic", "fusion", "imagine", "ios", "macos", "material", "universal", "windows"],
         "config": ["ANY"],
@@ -82,10 +85,13 @@ class QtConan(ConanFile):
     default_options = dict({
         "shared": True, 
         "fPIC": True,
+        "lto": False,
         "opengl": "no",
         "openssl": False, 
         "GUI": False, 
         "widgets": False,
+        "dbus": False,
+        "xml": False,
         "widgetsstyle": None,
         "quick2style": None,
         "config": "none"}, **{module: False for module in submodules})
@@ -107,6 +113,7 @@ class QtConan(ConanFile):
             self.requires("ffmpeg/6.0")
 
     def configure(self):
+
         if self.options.openssl:
             self.options["openssl"].shared = self.options.shared
         if self.options.qtmultimedia:
@@ -138,6 +145,7 @@ class QtConan(ConanFile):
             self.options["ffmpeg"].with_programs = False
             self.options["ffmpeg"].with_libfdk_aac = False
             self.options["ffmpeg"].with_libmp3lame = False
+        
 
     def config_options(self):
 
@@ -199,15 +207,10 @@ class QtConan(ConanFile):
         #patch(self, base_path="Qt/qtbase", patch_file=os.path.join("patches", "Qt6CoreMacros_%s.cmake.patch" % self.version))
         replace_in_file(self, "Qt/qtbase/src/corelib/Qt6CoreMacros.cmake", "elseif(UNIX AND NOT APPLE AND NOT ANDROID AND NOT CMAKE_CROSSCOMPILING)", "elseif(UNIX AND NOT APPLE AND NOT ANDROID)")
         replace_in_file(self, "Qt/qtdeclarative/src/qml/Qt6QmlMacros.cmake", "elseif(UNIX AND NOT APPLE AND NOT ANDROID AND NOT CMAKE_CROSSCOMPILING", "elseif(UNIX AND NOT APPLE AND NOT ANDROID")
-        #patch(self, base_path="Qt/qtbase", patch_file=os.path.join("patches", "QTBUG-117950.patch"))
-        replace_in_file(self, "Qt/qtdeclarative/src/qml/Qt6QmlMacros.cmake", "string(APPEND content \"prefer :${prefix}\\n\")", "")
-        #patch(self, base_path="Qt/qtdeclarative", patch_file=os.path.join("patches", "QTBUG-111570.patch"))
-        #patch(self, base_path="Qt/qtdeclarative", patch_file=os.path.join("patches", "QTBUG-118470.patch"))
-        #patch(self, base_path="Qt/qtdeclarative", patch_file=os.path.join("patches", "QTBUG-119715.patch"))
+        #replace_in_file(self, "Qt/qtdeclarative/src/qml/Qt6QmlMacros.cmake", "string(APPEND content \"prefer :${prefix}\\n\")", "")
         patch(self, base_path="Qt/qtmultimedia", patch_file=os.path.join("patches", "ffmpeg_plugin_jni_onload_fix.patch"))
         patch(self, base_path="Qt/qtlocation", patch_file=os.path.join("patches", "disable_test_qtlocation.patch"))
         patch(self, base_path="Qt/qtdeclarative", patch_file=os.path.join("patches", "qml_plugin_init.patch"))
-        #patch(self, base_path="Qt/qtquick3d", patch_file=os.path.join("patches", "QTBUG-123015.patch"))
         
         # enable rasp-pi brcm opengl implementation (very unstable - don't use)
         #replace_in_file(self, "Qt/qtbase/src/plugins/platforms/eglfs/deviceintegration/CMakeLists.txt", "# add_subdirectory(eglfs_brcm) # TODO: QTBUG-112769", "add_subdirectory(eglfs_brcm)")
@@ -246,7 +249,28 @@ class QtConan(ConanFile):
                 tc.variables["FEATURE_UNITY_BUILD"] = False
                 tc.variables["FEATURE_use_gold_linker"] = False
                 tc.variables["FEATURE_use_gold_linker_alias"] = False
-    
+
+        if self.settings.os == "Linux":
+            tc.variables["FEATURE_fontconfig"] = True # FEATURE_system_freetype is needed for FEATURE_fontconfig
+            tc.variables["FEATURE_system_freetype"] = True
+        tc.variables["FEATURE_system_jpeg"] = False
+        tc.variables["FEATURE_system_png"] = False
+        tc.variables["FEATURE_system_tiff"] = False
+        tc.variables["FEATURE_system_webp"] = False
+        tc.variables["FEATURE_system_harfbuzz"] = False
+        tc.variables["FEATURE_system_doubleconversion"] = False
+        tc.variables["FEATURE_system_textmarkdownreader"] = False
+        tc.variables["FEATURE_system_libb2"] = False
+        tc.variables["FEATURE_system_pcre2"] = False
+        # image-formats
+        tc.variables["FEATURE_webp"] = False
+        tc.variables["FEATURE_jasper"] = False
+        tc.variables["FEATURE_tiff"] = False
+        tc.variables["FEATURE_mng"] = False
+
+        tc.variables["FEATURE_vnc"] = False
+        tc.variables["FEATURE_linuxfb"] = False
+        tc.variables["FEATURE_sessionmanager"] = False
         tc.variables["FEATURE_icu"] = False # always major version breakage
         tc.variables["FEATURE_hunspell"] = False
         tc.variables["FEATURE_gssapi"] = False
@@ -256,8 +280,6 @@ class QtConan(ConanFile):
         tc.variables["FEATURE_slog2"] = False
         tc.variables["FEATURE_zstd"] = False
         tc.variables["FEATURE_libudev"] = False
-        tc.variables["FEATURE_system_libb2"] = False
-        tc.variables["FEATURE_system_pcre2"] = False
         tc.variables["TEST_libclang"] = False
         tc.variables["FEATURE_clang"] = False
         tc.variables["FEATURE_clangcpp"] = False
@@ -274,6 +296,20 @@ class QtConan(ConanFile):
         tc.variables["QT_BUILD_TESTS_BY_DEFAULT"] = False
         tc.variables["QT_BUILD_EXAMPLES"] = False
         tc.variables["QT_BUILD_EXAMPLES_BY_DEFAULT"] = False
+
+        if self.options.dbus:
+            tc.variables["FEATURE_dbus"] = True
+            tc.variables["FEATURE_dbus_linked"] = False
+            tc.variables["FEATURE_qdbus"] = True
+        else:
+            tc.variables["FEATURE_dbus"] = False
+            tc.variables["FEATURE_qdbus"] = False
+
+        if self.options.xml:
+            tc.variables["FEATURE_xml"] = True
+        else:
+            tc.variables["FEATURE_xml"] = False
+
         if self.options.qtmultimedia:
             tc.variables["FFMPEG_DIR"] = self.dependencies["ffmpeg"].package_folder
             tc.variables["QT_DEFAULT_MEDIA_BACKEND"] = "ffmpeg"
@@ -323,11 +359,20 @@ class QtConan(ConanFile):
         else:
             tc.variables["BUILD_SHARED_LIBS"] = False
 
+        if self.options.lto:
+            tc.variables["CMAKE_INTERPROCEDURAL_OPTIMIZATION"] = True
+            tc.variables["FEATURE_ltcg"] = True # link time optimization
+        else:
+            tc.variables["CMAKE_INTERPROCEDURAL_OPTIMIZATION"] = False
+            tc.variables["FEATURE_ltcg"] = False # link time optimization
+
         tc.variables["FEATURE_network"] = True
         tc.variables["FEATURE_sql"] = False
         tc.variables["FEATURE_printsupport"] = False
         #cmake.definitions["FEATURE_testlib"] = "OFF"
-       
+
+        tc.variables["FEATURE_openvg"] = False
+        tc.variables["FEATURE_vulkan"] = False
         tc.variables["FEATURE_opengl"] = False
         tc.variables["FEATURE_opengl_desktop"] = False
         tc.variables["FEATURE_opengl_dynamic"] = False
