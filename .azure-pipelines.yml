@@ -11,33 +11,16 @@ stages:
   jobs:
     - job: Linux_Qt_Host
       pool:
-        vmImage: "ubuntu-20.04"
+        name: "Google Cloud"
+      container: ghcr.io/tereius/conan-ubuntu:latest
       timeoutInMinutes: 0
       steps:
-        - template: buildConanRecipe.yml@templates
-          parameters:
-            conanEnv:
-              {
-                CONAN_OPTIONS: "qt/*:config=host",
-                CONAN_REMOTES: "https://conan.privatehive.de/artifactory/api/conan/public-conan",
-              }
-
-    - job: Upload
-      dependsOn:
-        - Linux_Qt_Host
-      condition: and(succeeded(), in(variables['Build.Reason'], 'IndividualCI', 'BatchedCI'))
-      pool:
-        vmImage: "ubuntu-latest"
-      steps:
-        - template: uploadConanRecipe.yml@templates
-          parameters:
-            conanEnv:
-              {
-                UPLOAD_ALL: "true",
-                CONAN_UPLOAD: "https://conan.privatehive.de/artifactory/api/conan/public-conan",
-                CONAN_LOGIN_USERNAME: "ci",
-                CONAN_PASSWORD: "$(secret)",
-              }
+      - checkout: self
+        path: sourceCode
+        lfs: true
+      - script: |
+          conan create ./sourceCode --build missing
+        displayName: 'Build conan'
 
 - stage: build
   jobs:
