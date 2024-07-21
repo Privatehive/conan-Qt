@@ -2,10 +2,21 @@ name: "Create Conan Package"
 on: push
 
 jobs:
-  create:
-    name: "Create"
+  build_linux:
+    name: "Build Linux"
     uses: Privatehive/conan-workflows/.github/workflows/createPackage.yml@master
     with:
+      image: "ghcr.io/tereius/conan-ubuntu:latest"
       runs-on: self-hosted
       conan_remotes: https://conan.privatehive.de/artifactory/api/conan/public-conan
       conan_options: "qt/*:shared=True,qt/*:GUI=True,qt/*:opengl=desktop,qt/*:qtbase=True,qt/*:widgets=True,qt/*:qtdeclarative=True,qt/*:qtsvg=True"
+
+  build_windows:
+    name: "Build Windows"
+    uses: Privatehive/conan-workflows/.github/workflows/createPackage.yml@master
+    with:
+      image: "ghcr.io/tereius/conan-wine:latest"
+      runs-on: self-hosted
+      conan_remotes: https://conan.privatehive.de/artifactory/api/conan/public-conan
+      conan_options: "qt/*:shared=True,qt/*:GUI=True,qt/*:opengl=desktop,qt/*:qtbase=True,qt/*:widgets=True,qt/*:qtdeclarative=True,qt/*:qtsvg=True"
+
