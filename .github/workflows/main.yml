@@ -3,7 +3,7 @@ on: push
 
 jobs:
   create:
-    uses: Privatehive/conan-workflows/.github/workflows/createPackage.yml@317da1289dfbe39e6aec4875a76c83aecdbe2600
+    uses: Privatehive/conan-workflows/.github/workflows/createPackage.yml@718a82f18753ae54351a99b66f4a32aa507e1b9f
     with:
       runs-on: self-hosted
       conan_remotes: https://conan.privatehive.de/artifactory/api/conan/public-conan
