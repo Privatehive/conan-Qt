@@ -35,7 +35,7 @@ jobs:
     name: "Finalize"
     uses: Privatehive/conan-workflows/.github/workflows/uploadRecipe.yml@master
     needs: [build_linux, build_windows, build_android]
-    if: ${{ success() && github.ref == 'refs/heads/master' }}
+    if: ${{ success() }}
     secrets: inherit
     with:
       conan_upload_remote: https://conan.privatehive.de/artifactory/api/conan/public-conan
