@@ -1,10 +1,13 @@
 # conan-Qt
-| os | os_build | Status |
-|---|---|---|
-| Android | Linux | [![Build Status](https://dev.azure.com/bjoernstresing/bjoernstresing/_apis/build/status/Tereius.conan-Qt?branchName=master&jobName=Android&configuration=Android%20Linux)](https://dev.azure.com/bjoernstresing/bjoernstresing/_build/latest?definitionId=6&branchName=master) |
-| Android | Windows | [![Build Status](https://dev.azure.com/bjoernstresing/bjoernstresing/_apis/build/status/Tereius.conan-Qt?branchName=master&jobName=Android&configuration=Android%20Windows)](https://dev.azure.com/bjoernstresing/bjoernstresing/_build/latest?definitionId=6&branchName=master) |
-| Linux | Linux | [![Build Status](https://dev.azure.com/bjoernstresing/bjoernstresing/_apis/build/status/Tereius.conan-Qt?branchName=master&jobName=Linux&configuration=Linux%20Debug)](https://dev.azure.com/bjoernstresing/bjoernstresing/_build/latest?definitionId=6&branchName=master) |
-| Windows | Windows | [![Build Status](https://dev.azure.com/bjoernstresing/bjoernstresing/_apis/build/status/Tereius.conan-Qt?branchName=master&jobName=Windows&configuration=Windows%20Debug)](https://dev.azure.com/bjoernstresing/bjoernstresing/_build/latest?definitionId=6&branchName=master) |
-| Macos | Macos | [![Build Status](https://dev.azure.com/bjoernstresing/bjoernstresing/_apis/build/status/Tereius.conan-Qt?branchName=master&jobName=Macos&configuration=Macos%20Debug)](https://dev.azure.com/bjoernstresing/bjoernstresing/_build/latest?definitionId=6&branchName=master)
 
-### A conan package that builds Qt5
+[![Conan Remote Recipe](https://img.shields.io/badge/dynamic/json?url=https%3A%2F%2Fapi.github.com%2Frepos%2FPrivatehive%2Fconan-Qt%2Fproperties%2Fvalues&query=%24%5B%3F(%40.property_name%20%3D%3D%20'conan-package')%5D.value&style=flat&logo=conan&label=conan&color=%232980b9)](https://conan.privatehive.de/ui/repos/tree/General/public-conan/de.privatehive) 
+
+#### A conan package that provides Qt
+
+---
+
+| os        | arch     | CI Status                                                                                                                                                                                                                                                                                 |
+| --------- | -------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `Linux`   | `x86_64` | [![GitHub Actions Workflow Status](https://img.shields.io/github/actions/workflow/status/Privatehive/conan-Qt/main.yml?branch=master&style=flat&logo=github&label=Docker+build)](https://github.com/Privatehive/conan-Qt/actions?query=branch%3Amaster) |
+| `Windows` | `x86_64` | [![GitHub Actions Workflow Status](https://img.shields.io/github/actions/workflow/status/Privatehive/conan-Qt/main.yml?branch=master&style=flat&logo=github&label=Docker+build)](https://github.com/Privatehive/conan-Qt/actions?query=branch%3Amaster) |
+| `Android` | `armv8`  | [![GitHub Actions Workflow Status](https://img.shields.io/github/actions/workflow/status/Privatehive/conan-Qt/main.yml?branch=master&style=flat&logo=github&label=Docker+build)](https://github.com/Privatehive/conan-Qt/actions?query=branch%3Amaster) |

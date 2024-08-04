@@ -1,0 +1,28 @@
+diff --git a/src/qml/Qt6QmlPluginTemplate.cpp.in b/src/qml/Qt6QmlPluginTemplate.cpp.in
+index f49aceb8d1..4ba3c590c9 100644
+--- a/src/qml/Qt6QmlPluginTemplate.cpp.in
++++ b/src/qml/Qt6QmlPluginTemplate.cpp.in
+@@ -2,6 +2,10 @@
+ 
+ #include <QtCore/qtsymbolmacros.h>
+ #include <QtQml/qqmlextensionplugin.h>
++#if __has_include("@qt_qml_plugin_class_name@.h")
++#  include "@qt_qml_plugin_class_name@.h"
++#  define @qt_qml_plugin_class_name@_include_found 1
++#endif
+ 
+ @qt_qml_plugin_intro@
+ 
+@@ -15,6 +19,12 @@ public:
+     {
+ @qt_qml_plugin_constructor_content@
+     }
++
++#ifdef @qt_qml_plugin_class_name@_include_found
++    void initializeEngine(QQmlEngine *engine, const char *uri) override {
++        @qt_qml_plugin_class_name@_initializeEngine(engine, uri);
++    }
++#endif
+ };
+ 
+ @qt_qml_plugin_outro@

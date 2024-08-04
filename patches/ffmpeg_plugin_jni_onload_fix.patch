@@ -1,8 +1,8 @@
 diff --git a/src/plugins/multimedia/ffmpeg/qffmpegmediaintegration.cpp b/src/plugins/multimedia/ffmpeg/qffmpegmediaintegration.cpp
-index 28c0625c7..2b6c33c9f 100644
+index 291ca1111..e61364c03 100644
 --- a/src/plugins/multimedia/ffmpeg/qffmpegmediaintegration.cpp
 +++ b/src/plugins/multimedia/ffmpeg/qffmpegmediaintegration.cpp
-@@ -351,15 +351,17 @@ Q_DECL_EXPORT jint JNICALL JNI_OnLoad(JavaVM *vm, void * /*reserved*/)
+@@ -352,15 +352,12 @@ Q_DECL_EXPORT jint JNICALL JNI_OnLoad(JavaVM *vm, void * /*reserved*/)
  
      QT_USE_NAMESPACE
      void *environment;
@@ -10,18 +10,14 @@ index 28c0625c7..2b6c33c9f 100644
 +    if (vm->GetEnv(&environment, JNI_VERSION_1_6) != JNI_OK)
          return JNI_ERR;
  
-+    av_jni_set_java_vm(vm, nullptr);
-     // setting our javavm into ffmpeg.
+-    // setting our javavm into ffmpeg.
 -    if (av_jni_set_java_vm(vm, nullptr))
 -        return JNI_ERR;
-+    //if (av_jni_set_java_vm(vm, nullptr))
-+    //    return JNI_ERR;
++    av_jni_set_java_vm(vm, nullptr);
  
 -    if (!QAndroidCamera::registerNativeMethods())
 -        return JNI_ERR;
 +    QAndroidCamera::registerNativeMethods();
-+    //if (!QAndroidCamera::registerNativeMethods())
-+    //    return JNI_ERR;
  
      return JNI_VERSION_1_6;
  }

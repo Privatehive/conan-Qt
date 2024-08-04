@@ -6,61 +6,78 @@ resources:
       ref: dev
       endpoint: Tereius
 
-jobs:
-  - job: Android
-    pool:
-      vmImage: "ubuntu-20.04"
-    timeoutInMinutes: 0
-    steps:
-      - template: buildConanRecipe.yml@templates
-        parameters:
-          conanEnv:
-            {
-              CONAN_OPTIONS: "qt/*:shared=True,qt/*:GUI=True,qt/*:opengl=desktop,qt/*:qtbase=True,qt/*:widgets=True,qt/*:qtdeclarative=True,qt/*:qtsvg=True",
-              CONAN_HOST_PROFILE_PATH: "./hostProfiles/androidArmv7.profile",
-              CONAN_REMOTES: "https://conan.privatehive.de/artifactory/api/conan/public-conan",
-            }
+stages:
+- stage: build_qt_host
+  jobs:
+    - job: Linux_Qt_Host
+      pool:
+        name: "Google Cloud"
+      container: ghcr.io/tereius/conan-ubuntu:latest
+      timeoutInMinutes: 0
+      steps:
+      - checkout: self
+        path: sourceCode
+        lfs: true
+      - script: |
+          conan create ./sourceCode --build missing
+        displayName: 'Build conan'
 
-  - job: Linux
-    pool:
-      vmImage: "ubuntu-20.04"
-    timeoutInMinutes: 0
-    steps:
-      - template: buildConanRecipe.yml@templates
-        parameters:
-          conanEnv:
-            {
-              CONAN_OPTIONS: "qt/*:shared=True,qt/*:GUI=True,qt/*:opengl=desktop,qt/*:qtbase=True,qt/*:widgets=True,qt/*:qtdeclarative=True,qt/*:qtsvg=True",
-              CONAN_REMOTES: "https://conan.privatehive.de/artifactory/api/conan/public-conan",
-            }
+- stage: build
+  jobs:
+    - job: Android
+      pool:
+        vmImage: "ubuntu-20.04"
+      timeoutInMinutes: 0
+      steps:
+        - template: buildConanRecipe.yml@templates
+          parameters:
+            conanEnv:
+              {
+                CONAN_OPTIONS: "qt/*:shared=True,qt/*:GUI=True,qt/*:opengl=desktop,qt/*:qtbase=True,qt/*:widgets=True,qt/*:qtdeclarative=True,qt/*:qtsvg=True",
+                CONAN_HOST_PROFILE_PATH: "./hostProfiles/androidArmv7.profile",
+                CONAN_REMOTES: "https://conan.privatehive.de/artifactory/api/conan/public-conan",
+              }
 
-  - job: Windows
-    pool:
-      vmImage: "windows-2019"
-    timeoutInMinutes: 0
-    steps:
-      - template: buildConanRecipe.yml@templates
-        parameters:
-          conanEnv:
-            {
-              CONAN_OPTIONS: "qt/*:shared=True,qt/*:GUI=True,qt/*:opengl=desktop,qt/*:qtbase=True,qt/*:widgets=True,qt/*:qtdeclarative=True,qt/*:qtsvg=True",
-              CONAN_REMOTES: "https://conan.privatehive.de/artifactory/api/conan/public-conan",
-            }
+    - job: Linux
+      pool:
+        vmImage: "ubuntu-20.04"
+      timeoutInMinutes: 0
+      steps:
+        - template: buildConanRecipe.yml@templates
+          parameters:
+            conanEnv:
+              {
+                CONAN_OPTIONS: "qt/*:shared=True,qt/*:GUI=True,qt/*:opengl=desktop,qt/*:qtbase=True,qt/*:widgets=True,qt/*:qtdeclarative=True,qt/*:qtsvg=True",
+                CONAN_REMOTES: "https://conan.privatehive.de/artifactory/api/conan/public-conan",
+              }
 
-  - job: Upload
-    dependsOn:
-      #- Android
-      - Linux
-      #- Windows
-    condition: and(succeeded(), in(variables['Build.Reason'], 'IndividualCI', 'BatchedCI'))
-    pool:
-      vmImage: "ubuntu-latest"
-    steps:
-      - template: uploadConanRecipe.yml@templates
-        parameters:
-          conanEnv:
-            {
-              CONAN_UPLOAD: "https://conan.privatehive.de/artifactory/api/conan/public-conan",
-              CONAN_LOGIN_USERNAME: "ci",
-              CONAN_PASSWORD: "$(secret)",
-            }
+    - job: Windows
+      pool:
+        vmImage: "windows-2019"
+      timeoutInMinutes: 0
+      steps:
+        - template: buildConanRecipe.yml@templates
+          parameters:
+            conanEnv:
+              {
+                CONAN_OPTIONS: "qt/*:shared=True,qt/*:GUI=True,qt/*:opengl=desktop,qt/*:qtbase=True,qt/*:widgets=True,qt/*:qtdeclarative=True,qt/*:qtsvg=True",
+                CONAN_REMOTES: "https://conan.privatehive.de/artifactory/api/conan/public-conan",
+              }
+
+    - job: Upload
+      dependsOn:
+        #- Android
+        - Linux
+        - Windows
+      condition: and(succeeded(), in(variables['Build.Reason'], 'IndividualCI', 'BatchedCI'))
+      pool:
+        vmImage: "ubuntu-latest"
+      steps:
+        - template: uploadConanRecipe.yml@templates
+          parameters:
+            conanEnv:
+              {
+                CONAN_UPLOAD: "https://conan.privatehive.de/artifactory/api/conan/public-conan",
+                CONAN_LOGIN_USERNAME: "ci",
+                CONAN_PASSWORD: "$(secret)",
+              }
