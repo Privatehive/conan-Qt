@@ -3,7 +3,7 @@ on: push
 
 jobs:
   build_linux:
-    name: "Build Linux"
+    name: "Linux"
     uses: Privatehive/conan-workflows/.github/workflows/createPackage.yml@master
     with:
       image: "ghcr.io/privatehive/conan-ubuntu:latest"
@@ -12,7 +12,7 @@ jobs:
       conan_options: "qt/*:shared=True,qt/*:GUI=True,qt/*:opengl=desktop,qt/*:qtbase=True,qt/*:widgets=True,qt/*:qtdeclarative=True,qt/*:qtsvg=True"
 
   build_windows:
-    name: "Build Windows"
+    name: "Windows"
     uses: Privatehive/conan-workflows/.github/workflows/createPackage.yml@master
     with:
       image: "ghcr.io/privatehive/conan-wine:latest"
@@ -22,7 +22,7 @@ jobs:
       conan_options: "qt/*:GUI=True,qt/*:opengl=desktop,qt/*:qtbase=True,qt/*:widgets=True,qt/*:qtdeclarative=True,qt/*:qtsvg=True"
 
   build_android:
-    name: "Build Android"
+    name: "Android"
     uses: Privatehive/conan-workflows/.github/workflows/createPackage.yml@master
     with:
       image: "ghcr.io/privatehive/conan-ubuntu:latest"
