@@ -270,6 +270,7 @@ class QtConan(ConanFile):
         if self.settings.os == "Linux":
             tc.variables["FEATURE_fontconfig"] = True # FEATURE_system_freetype is needed for FEATURE_fontconfig
             tc.variables["FEATURE_system_freetype"] = True
+            tc.variables["FEATURE_tslib"] = False # used for multitouch input
         tc.variables["FEATURE_system_jpeg"] = False
         tc.variables["FEATURE_system_png"] = False
         tc.variables["FEATURE_system_tiff"] = False
