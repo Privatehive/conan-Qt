@@ -270,7 +270,9 @@ class QtConan(ConanFile):
         if self.settings.os == "Linux":
             tc.variables["FEATURE_fontconfig"] = True # FEATURE_system_freetype is needed for FEATURE_fontconfig
             tc.variables["FEATURE_system_freetype"] = True
-            tc.variables["FEATURE_tslib"] = False # used for multitouch input
+            tc.variables["FEATURE_tslib"] = False # disable multitouch input for now
+            tc.variables["FEATURE_mtdev"] = False # disable multitouch input for now
+        tc.variables["FEATURE_optimize_debug"] = self.settings.build_type != "Debug"
         tc.variables["FEATURE_system_jpeg"] = False
         tc.variables["FEATURE_system_png"] = False
         tc.variables["FEATURE_system_tiff"] = False
