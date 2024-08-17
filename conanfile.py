@@ -272,7 +272,8 @@ class QtConan(ConanFile):
             tc.variables["FEATURE_system_freetype"] = True
             tc.variables["FEATURE_tslib"] = False # disable multitouch input for now
             tc.variables["FEATURE_mtdev"] = False # disable multitouch input for now
-        tc.variables["FEATURE_optimize_debug"] = self.settings.build_type != "Debug"
+        if self.settings.build_type == "Debug":
+            tc.variables["FEATURE_optimize_debug"] = False
         tc.variables["FEATURE_system_jpeg"] = False
         tc.variables["FEATURE_system_png"] = False
         tc.variables["FEATURE_system_tiff"] = False
@@ -288,15 +289,17 @@ class QtConan(ConanFile):
         tc.variables["FEATURE_tiff"] = False
         tc.variables["FEATURE_mng"] = False
 
+        # network
+        tc.variables["FEATURE_brotli"] = False
+        tc.variables["FEATURE_gssapi"] = False
+
         tc.variables["FEATURE_vnc"] = False
         tc.variables["FEATURE_linuxfb"] = False
         tc.variables["FEATURE_sessionmanager"] = False
         tc.variables["FEATURE_icu"] = False # always major version breakage
         tc.variables["FEATURE_hunspell"] = False
-        tc.variables["FEATURE_gssapi"] = False
         tc.variables["FEATURE_backtrace"] = False
         tc.variables["FEATURE_glib"] = False
-        tc.variables["FEATURE_brotli"] = False
         tc.variables["FEATURE_slog2"] = False
         tc.variables["FEATURE_zstd"] = False
         tc.variables["FEATURE_libudev"] = False
@@ -309,6 +312,7 @@ class QtConan(ConanFile):
         tc.variables["FEATURE_batch_test_support"] = False
         tc.variables["FEATURE_itemmodeltester"] = False
         tc.variables["FEATURE_pixeltool"] = False
+        tc.variables["FEATURE_androiddeployqt"] = self.is_host_build
         tc.variables["QT_BUILD_BENCHMARKS"] = False
         tc.variables["QT_BUILD_MANUAL_TESTS"] = False
         tc.variables["QT_BUILD_TESTS"] = False
@@ -316,6 +320,34 @@ class QtConan(ConanFile):
         tc.variables["QT_BUILD_TESTS_BY_DEFAULT"] = False
         tc.variables["QT_BUILD_EXAMPLES"] = False
         tc.variables["QT_BUILD_EXAMPLES_BY_DEFAULT"] = False
+        tc.variables["QT_INSTALL_EXAMPLES_SOURCES_BY_DEFAULT"] = False
+
+        # if not self.get_option("network"):
+        #     tc.variables["FEATURE_network"] = False
+        #     tc.variables["FEATURE_networkdiskcache"] = False
+        #     tc.variables["FEATURE_networkinterface"] = False
+        #     tc.variables["FEATURE_networklistmanager"] = False
+        #     tc.variables["FEATURE_system_proxies"] = False
+        #     tc.variables["FEATURE_linux_netlink"] = False
+        #     tc.variables["FEATURE_networkproxy"] = False
+        #     tc.variables["FEATURE_udpsocket"] = False
+        #     tc.variables["FEATURE_socks5"] = False
+        #     tc.variables["FEATURE_qml_network"] = False
+        #     tc.variables["FEATURE_dnslookup"] = False
+        #     tc.variables["FEATURE_getifaddrs"] = False
+        #     tc.variables["FEATURE_ipv6ifname"] = False
+        #     tc.variables["FEATURE_http"] = False
+        #     tc.variables["FEATURE_dtls"] = False
+        #     tc.variables["FEATURE_sctp"] = False
+        #     tc.variables["FEATURE_ocsp"] = False
+        #     tc.variables["FEATURE_gssapi"] = False
+        #     tc.variables["FEATURE_libproxy"] = False
+        #     tc.variables["FEATURE_libresolv"] = False
+        #     tc.variables["FEATURE_brotli"] = False
+        #     tc.variables["FEATURE_localserver"] = False
+        #     tc.variables["FEATURE_publicsuffix_qt"] = False
+        #     tc.variables["FEATURE_publicsuffix_system"] = False
+        #     tc.variables["FEATURE_topleveldomain"] = False
 
         if self.get_option("dbus"):
             tc.variables["FEATURE_dbus"] = True
@@ -420,6 +452,8 @@ class QtConan(ConanFile):
             tc.variables["OPENSSL_ROOT_DIR"] = self.dependencies["openssl"].package_folder
         else:
             tc.variables["FEATURE_openssl"] = False
+            tc.variables["FEATURE_opensslv11"] = False
+            tc.variables["FEATURE_opensslv30"] = False
             tc.variables["FEATURE_openssl_linked"] = False
             tc.variables["FEATURE_openssl_runtime"] = False
 
