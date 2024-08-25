@@ -362,6 +362,11 @@ class QtConan(ConanFile):
         else:
             tc.variables["FEATURE_xml"] = False
 
+        if self.get_option("qttools") and self.get_option("qttranslations"):
+            tc.variables["QT_FEATURE_linguist"] = True # feature switch for lupdate, lrelease, lconvert
+        else:
+            tc.variables["QT_FEATURE_linguist"] = False
+
         if self.get_option("qtmultimedia"):
             tc.variables["FFMPEG_DIR"] = self.dependencies["ffmpeg"].package_folder
             tc.variables["QT_DEFAULT_MEDIA_BACKEND"] = "ffmpeg"
