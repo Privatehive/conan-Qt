@@ -1,5 +1,5 @@
 diff --git a/CMakeLists.txt b/CMakeLists.txt
-index f979951..94c7cce 100644
+index f979951b..94c7cce2 100644
 --- a/CMakeLists.txt
 +++ b/CMakeLists.txt
 @@ -27,7 +27,7 @@ endif()
@@ -20,7 +20,7 @@ index f979951..94c7cce 100644
  
  qt_build_repo()
 diff --git a/tests/auto/CMakeLists.txt b/tests/auto/CMakeLists.txt
-index af91607..72d5076 100644
+index af916073..72d50764 100644
 --- a/tests/auto/CMakeLists.txt
 +++ b/tests/auto/CMakeLists.txt
 @@ -2,7 +2,6 @@

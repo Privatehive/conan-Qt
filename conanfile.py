@@ -198,7 +198,7 @@ class QtConan(ConanFile):
             apt = Apt(self)
             pack_names = []
             if self.get_option("GUI"):
-                pack_names.extend(["libfontconfig1-dev", "libfreetype6-dev", "libx11-dev", "libx11-xcb-dev", "libxext-dev", "libxfixes-dev", "libxi-dev", "libxrender-dev", "libxcb1-dev", "libxcb-cursor-dev", "libxcb-glx0-dev", "libxcb-keysyms1-dev", "libxcb-image0-dev", "libxcb-shm0-dev", "libxcb-icccm4-dev", "libxcb-sync-dev", "libxcb-xfixes0-dev", "libxcb-shape0-dev", "libxcb-randr0-dev", "libxcb-render-util0-dev", "libxcb-util-dev", "libxcb-xinerama0-dev", "libxcb-xkb-dev", "libxkbcommon-dev", "libxkbcommon-x11-dev"])
+                pack_names.extend(["libwayland-dev", "libfontconfig1-dev", "libfreetype6-dev", "libx11-dev", "libx11-xcb-dev", "libxext-dev", "libxfixes-dev", "libxi-dev", "libxrender-dev", "libxcb1-dev", "libxcb-cursor-dev", "libxcb-glx0-dev", "libxcb-keysyms1-dev", "libxcb-image0-dev", "libxcb-shm0-dev", "libxcb-icccm4-dev", "libxcb-sync-dev", "libxcb-xfixes0-dev", "libxcb-shape0-dev", "libxcb-randr0-dev", "libxcb-render-util0-dev", "libxcb-util-dev", "libxcb-xinerama0-dev", "libxcb-xkb-dev", "libxkbcommon-dev", "libxkbcommon-x11-dev"])
                 if self.get_option("opengl") == "desktop":
                     pack_names.append("libgl1-mesa-dev")
             if self.get_option("qtmultimedia"):
@@ -270,6 +270,10 @@ class QtConan(ConanFile):
         if self.settings.os == "Linux":
             tc.variables["FEATURE_fontconfig"] = True # FEATURE_system_freetype is needed for FEATURE_fontconfig
             tc.variables["FEATURE_system_freetype"] = True
+            tc.variables["FEATURE_tslib"] = False # disable multitouch input for now
+            tc.variables["FEATURE_mtdev"] = False # disable multitouch input for now
+        if self.settings.build_type == "Debug":
+            tc.variables["FEATURE_optimize_debug"] = False
         tc.variables["FEATURE_system_jpeg"] = False
         tc.variables["FEATURE_system_png"] = False
         tc.variables["FEATURE_system_tiff"] = False
@@ -285,15 +289,17 @@ class QtConan(ConanFile):
         tc.variables["FEATURE_tiff"] = False
         tc.variables["FEATURE_mng"] = False
 
+        # network
+        tc.variables["FEATURE_brotli"] = False
+        tc.variables["FEATURE_gssapi"] = False
+
         tc.variables["FEATURE_vnc"] = False
         tc.variables["FEATURE_linuxfb"] = False
         tc.variables["FEATURE_sessionmanager"] = False
         tc.variables["FEATURE_icu"] = False # always major version breakage
         tc.variables["FEATURE_hunspell"] = False
-        tc.variables["FEATURE_gssapi"] = False
         tc.variables["FEATURE_backtrace"] = False
         tc.variables["FEATURE_glib"] = False
-        tc.variables["FEATURE_brotli"] = False
         tc.variables["FEATURE_slog2"] = False
         tc.variables["FEATURE_zstd"] = False
         tc.variables["FEATURE_libudev"] = False
@@ -306,6 +312,7 @@ class QtConan(ConanFile):
         tc.variables["FEATURE_batch_test_support"] = False
         tc.variables["FEATURE_itemmodeltester"] = False
         tc.variables["FEATURE_pixeltool"] = False
+        tc.variables["FEATURE_androiddeployqt"] = self.is_host_build
         tc.variables["QT_BUILD_BENCHMARKS"] = False
         tc.variables["QT_BUILD_MANUAL_TESTS"] = False
         tc.variables["QT_BUILD_TESTS"] = False
@@ -313,6 +320,34 @@ class QtConan(ConanFile):
         tc.variables["QT_BUILD_TESTS_BY_DEFAULT"] = False
         tc.variables["QT_BUILD_EXAMPLES"] = False
         tc.variables["QT_BUILD_EXAMPLES_BY_DEFAULT"] = False
+        tc.variables["QT_INSTALL_EXAMPLES_SOURCES_BY_DEFAULT"] = False
+
+        # if not self.get_option("network"):
+        #     tc.variables["FEATURE_network"] = False
+        #     tc.variables["FEATURE_networkdiskcache"] = False
+        #     tc.variables["FEATURE_networkinterface"] = False
+        #     tc.variables["FEATURE_networklistmanager"] = False
+        #     tc.variables["FEATURE_system_proxies"] = False
+        #     tc.variables["FEATURE_linux_netlink"] = False
+        #     tc.variables["FEATURE_networkproxy"] = False
+        #     tc.variables["FEATURE_udpsocket"] = False
+        #     tc.variables["FEATURE_socks5"] = False
+        #     tc.variables["FEATURE_qml_network"] = False
+        #     tc.variables["FEATURE_dnslookup"] = False
+        #     tc.variables["FEATURE_getifaddrs"] = False
+        #     tc.variables["FEATURE_ipv6ifname"] = False
+        #     tc.variables["FEATURE_http"] = False
+        #     tc.variables["FEATURE_dtls"] = False
+        #     tc.variables["FEATURE_sctp"] = False
+        #     tc.variables["FEATURE_ocsp"] = False
+        #     tc.variables["FEATURE_gssapi"] = False
+        #     tc.variables["FEATURE_libproxy"] = False
+        #     tc.variables["FEATURE_libresolv"] = False
+        #     tc.variables["FEATURE_brotli"] = False
+        #     tc.variables["FEATURE_localserver"] = False
+        #     tc.variables["FEATURE_publicsuffix_qt"] = False
+        #     tc.variables["FEATURE_publicsuffix_system"] = False
+        #     tc.variables["FEATURE_topleveldomain"] = False
 
         if self.get_option("dbus"):
             tc.variables["FEATURE_dbus"] = True
@@ -326,6 +361,11 @@ class QtConan(ConanFile):
             tc.variables["FEATURE_xml"] = True
         else:
             tc.variables["FEATURE_xml"] = False
+
+        if self.get_option("qttools") and self.get_option("qttranslations"):
+            tc.variables["QT_FEATURE_linguist"] = True # feature switch for lupdate, lrelease, lconvert
+        else:
+            tc.variables["QT_FEATURE_linguist"] = False
 
         if self.get_option("qtmultimedia"):
             tc.variables["FFMPEG_DIR"] = self.dependencies["ffmpeg"].package_folder
@@ -417,6 +457,8 @@ class QtConan(ConanFile):
             tc.variables["OPENSSL_ROOT_DIR"] = self.dependencies["openssl"].package_folder
         else:
             tc.variables["FEATURE_openssl"] = False
+            tc.variables["FEATURE_opensslv11"] = False
+            tc.variables["FEATURE_opensslv30"] = False
             tc.variables["FEATURE_openssl_linked"] = False
             tc.variables["FEATURE_openssl_runtime"] = False
 

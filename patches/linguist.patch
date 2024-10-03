@@ -1,5 +1,5 @@
 diff --git a/configure.cmake b/configure.cmake
-index 9fbbe2c..afd5982 100644
+index 7e5cf30e2..aebe0e37d 100644
 --- a/configure.cmake
 +++ b/configure.cmake
 @@ -17,7 +17,7 @@
@@ -12,15 +12,24 @@ index 9fbbe2c..afd5982 100644
  
  if(TARGET WrapLibClang::WrapLibClang)
 diff --git a/src/linguist/CMakeLists.txt b/src/linguist/CMakeLists.txt
-index d85254b..3434853 100644
+index 20ec24733..edda919ad 100644
 --- a/src/linguist/CMakeLists.txt
 +++ b/src/linguist/CMakeLists.txt
-@@ -14,7 +14,7 @@ add_subdirectory(lrelease)
+@@ -5,16 +5,13 @@ qt_exclude_tool_directories_from_default_target(
+     linguist
+ )
+ 
+-if(NOT QT_FEATURE_linguist)
+-    return()
+-endif()
+ add_subdirectory(lconvert)
+ add_subdirectory(lprodump)
+ add_subdirectory(lrelease)
  add_subdirectory(lrelease-pro)
  add_subdirectory(lupdate)
  add_subdirectory(lupdate-pro)
--if(QT_FEATURE_process AND QT_FEATURE_pushbutton AND QT_FEATURE_toolbutton AND TARGET Qt::Widgets AND NOT no-png)
-+if(QT_FEATURE_printsupport AND QT_FEATURE_process AND QT_FEATURE_pushbutton AND QT_FEATURE_toolbutton AND TARGET Qt::Widgets AND NOT no-png)
+-if(QT_FEATURE_process AND QT_FEATURE_pushbutton AND QT_FEATURE_toolbutton
++if(QT_FEATURE_linguist AND QT_FEATURE_process AND QT_FEATURE_pushbutton AND QT_FEATURE_toolbutton
+     AND QT_FEATURE_png AND QT_FEATURE_printsupport AND TARGET Qt::Widgets)
      add_subdirectory(linguist)
  endif()
- 
