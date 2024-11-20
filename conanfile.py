@@ -315,6 +315,7 @@ class QtConan(ConanFile):
         tc.variables["FEATURE_testlib_selfcover"] = False
         tc.variables["FEATURE_batch_test_support"] = False
         tc.variables["FEATURE_itemmodeltester"] = False
+        tc.variables["FEATURE_quick3dxr_openxr"] = False
         tc.variables["FEATURE_qml_python"] = True # Is somehow needed
         # Tools
         tc.variables["FEATURE_pixeltool"] = False
