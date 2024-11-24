@@ -493,6 +493,7 @@ class QtConan(ConanFile):
         cmake.install()
 
     def package_info(self):
+        self.cpp_info.set_property("cmake_find_mode", "none")
         if self.is_host_build:
             self.output.info('Creating QT_HOST_PATH environment variable: %s' % self.package_folder)
             self.buildenv_info.define_path("QT_HOST_PATH", self.package_folder)
