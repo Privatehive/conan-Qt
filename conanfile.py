@@ -219,9 +219,11 @@ class QtConan(ConanFile):
         replace_in_file(self, "Qt/qtbase/src/corelib/Qt6CoreMacros.cmake", "elseif(UNIX AND NOT APPLE AND NOT ANDROID AND NOT CMAKE_CROSSCOMPILING)", "elseif(UNIX AND NOT APPLE AND NOT ANDROID)")
         replace_in_file(self, "Qt/qtdeclarative/src/qml/Qt6QmlMacros.cmake", "elseif(UNIX AND NOT APPLE AND NOT ANDROID AND NOT CMAKE_CROSSCOMPILING", "elseif(UNIX AND NOT APPLE AND NOT ANDROID")
         #replace_in_file(self, "Qt/qtdeclarative/src/qml/Qt6QmlMacros.cmake", "string(APPEND content \"prefer :${prefix}\\n\")", "")
-        patch(self, base_path="Qt/qtmultimedia", patch_file=os.path.join("patches", "ffmpeg_plugin_jni_onload_fix.patch"))
+        #patch(self, base_path="Qt/qtmultimedia", patch_file=os.path.join("patches", "ffmpeg_plugin_jni_onload_fix.patch"))
         patch(self, base_path="Qt/qtlocation", patch_file=os.path.join("patches", "disable_test_qtlocation.patch"))
+        patch(self, base_path="Qt/qtgraphs", patch_file=os.path.join("patches", "disable_test_qtgraphs.patch"))
         patch(self, base_path="Qt/qtdeclarative", patch_file=os.path.join("patches", "qml_plugin_init.patch"))
+        patch(self, base_path="Qt/qttools", patch_file=os.path.join("patches", "fix_dbusviewer_wo_xml.patch"))
         
         rmdir(self, "Qt/qtwebengine")
 
@@ -293,6 +295,8 @@ class QtConan(ConanFile):
         tc.variables["FEATURE_brotli"] = False
         tc.variables["FEATURE_gssapi"] = False
 
+        #tc.variables["BUILD_qt5compat"] = False # disable deprecated stuff
+        tc.variables["FEATURE_xlib"] = False # disable legay xlib use xcb instead
         tc.variables["FEATURE_vnc"] = False
         tc.variables["FEATURE_linuxfb"] = False
         tc.variables["FEATURE_sessionmanager"] = False
@@ -311,8 +315,19 @@ class QtConan(ConanFile):
         tc.variables["FEATURE_testlib_selfcover"] = False
         tc.variables["FEATURE_batch_test_support"] = False
         tc.variables["FEATURE_itemmodeltester"] = False
+        tc.variables["FEATURE_quick3dxr_openxr"] = False
+        tc.variables["FEATURE_qml_python"] = True # Is somehow needed
+        # Tools
         tc.variables["FEATURE_pixeltool"] = False
+        tc.variables["FEATURE_designer"] = False # needs qt xml
+        tc.variables["FEATURE_distancefieldgenerator"] = False
+        tc.variables["FEATURE_quick_designer"] = False
+        tc.variables["FEATURE_qtattributionsscanner"] = False
+        tc.variables["FEATURE_assistant"] = False
+        tc.variables["FEATURE_qml_preview"] = False
+        tc.variables["FEATURE_qtdiag"] = False
         tc.variables["FEATURE_androiddeployqt"] = self.is_host_build
+        
         tc.variables["QT_BUILD_BENCHMARKS"] = False
         tc.variables["QT_BUILD_MANUAL_TESTS"] = False
         tc.variables["QT_BUILD_TESTS"] = False
@@ -469,6 +484,8 @@ class QtConan(ConanFile):
         cmake = CMake(self)
         #cmake.configure(cli_args=["--log-level=STATUS --debug-trycompile"], build_script_folder="Qt")
         cmake.configure(build_script_folder="Qt")
+        with open(os.path.join(self.build_folder, "config.summary"), 'r') as f:
+            print(f.read())
         cmake.build()
 
     def package(self):
@@ -476,6 +493,7 @@ class QtConan(ConanFile):
         cmake.install()
 
     def package_info(self):
+        self.cpp_info.set_property("cmake_find_mode", "none")
         if self.is_host_build:
             self.output.info('Creating QT_HOST_PATH environment variable: %s' % self.package_folder)
             self.buildenv_info.define_path("QT_HOST_PATH", self.package_folder)
