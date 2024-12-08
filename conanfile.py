@@ -408,7 +408,10 @@ class QtConan(ConanFile):
                 tc.variables["FEATURE_style_stylesheet"] = False
                 tc.variables["FEATURE_style_windows"] = False
                 tc.variables["FEATURE_style_windowsvista"] = False
-                tc.variables["FEATURE_style_" + str(self.self.get_option("widgetsstyle"))] = True
+                tc.variables["FEATURE_style_" + str(self.get_option("widgetsstyle"))] = True
+                if str(self.get_option("widgetsstyle")) == 'stylesheet':
+                    # stylesheet also needs windows style
+                    tc.variables["FEATURE_style_windows"] = True
         else:
             tc.variables["FEATURE_widgets"] = False
 
