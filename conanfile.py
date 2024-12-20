@@ -492,6 +492,7 @@ class QtConan(ConanFile):
         cmake.build()
 
     def package(self):
+        os.mkdir(os.path.join(self.package_folder, "include")) # macos: if only qtcore is built, include folder is missing but required by find_package(Qt6 REQUIRED Core)
         cmake = CMake(self)
         cmake.install()
 
