@@ -251,6 +251,8 @@ class QtConan(ConanFile):
             tc.variables["QT_FORCE_FIND_TOOLS"] = False
             if self.settings.os == "Android":
                 tc.variables["QT_QMAKE_TARGET_MKSPEC"] = "android-clang"
+            elif self.settings.os == "iOS":
+                tc.variables["QT_QMAKE_TARGET_MKSPEC"] = "macx-ios-clang"
             else:
                 # targeting raspberry pi
                 tc.variables["QT_QMAKE_TARGET_MKSPEC"] = "devices/linux-rasp-pi-g++"
