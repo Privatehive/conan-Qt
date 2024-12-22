@@ -27,45 +27,62 @@ jobs:
       conan_remotes: https://conan.privatehive.de/artifactory/api/conan/public-conan
       conan_options: "qt/*:GUI=True,qt/*:opengl=desktop,qt/*:qtbase=True,qt/*:widgets=True,qt/*:qtdeclarative=True,qt/*:qtsvg=True"
 
+  build_linux_qt_host:
+    name: "Linux_Host"
+    uses: Privatehive/conan-workflows/.github/workflows/createPackage.yml@master
+    with:
+      image: "ubuntu-20.04"
+      conan_remotes: https://conan.privatehive.de/artifactory/api/conan/public-conan
+      conan_options: "qt/*:config=host"
+      export_conan_cache: true
+
   build_android_x86:
     name: "Android"
-    uses: Privatehive/conan-workflows/.github/workflows/createPackageGcpRunner.yml@master
+    uses: Privatehive/conan-workflows/.github/workflows/createPackage.yml@master
+    needs: [ build_linux_qt_host ]
+    if: ${{ success() }}
     with:
-      docker_image: "ghcr.io/privatehive/conan-ubuntu:latest"
-      machine_type: c2d-standard-8
+      image: "ubuntu-20.04"
       conan_host_profile: "androidx86"
       conan_remotes: https://conan.privatehive.de/artifactory/api/conan/public-conan
       conan_options: "qt/*:GUI=True,qt/*:qtbase=True,qt/*:widgets=True,qt/*:qtdeclarative=True,qt/*:qtsvg=True"
+      import_conan_cache: true
 
   build_android_x86_64:
     name: "Android"
-    uses: Privatehive/conan-workflows/.github/workflows/createPackageGcpRunner.yml@master
+    uses: Privatehive/conan-workflows/.github/workflows/createPackage.yml@master
+    needs: [ build_linux_qt_host ]
+    if: ${{ success() }}
     with:
-      docker_image: "ghcr.io/privatehive/conan-ubuntu:latest"
-      machine_type: c2d-standard-8
+      image: "ubuntu-20.04"
       conan_host_profile: "androidx86_64"
       conan_remotes: https://conan.privatehive.de/artifactory/api/conan/public-conan
       conan_options: "qt/*:GUI=True,qt/*:qtbase=True,qt/*:widgets=True,qt/*:qtdeclarative=True,qt/*:qtsvg=True"
+      import_conan_cache: true
 
   build_android_armv7:
     name: "Android"
-    uses: Privatehive/conan-workflows/.github/workflows/createPackageGcpRunner.yml@master
+    uses: Privatehive/conan-workflows/.github/workflows/createPackage.yml@master
+    needs: [ build_linux_qt_host ]
+    if: ${{ success() }}
     with:
-      docker_image: "ghcr.io/privatehive/conan-ubuntu:latest"
-      machine_type: c2d-standard-8
+      image: "ubuntu-20.04"
       conan_host_profile: "androidArmv7"
       conan_remotes: https://conan.privatehive.de/artifactory/api/conan/public-conan
       conan_options: "qt/*:GUI=True,qt/*:qtbase=True,qt/*:widgets=True,qt/*:qtdeclarative=True,qt/*:qtsvg=True"
+      import_conan_cache: true
 
   build_android_armv8:
     name: "Android"
-    uses: Privatehive/conan-workflows/.github/workflows/createPackageGcpRunner.yml@master
+    uses: Privatehive/conan-workflows/.github/workflows/createPackage.yml@master
+    needs: [ build_linux_qt_host ]
+    if: ${{ success() }}
     with:
-      docker_image: "ghcr.io/privatehive/conan-ubuntu:latest"
-      machine_type: c2d-standard-8
+      image: "ubuntu-20.04"
       conan_host_profile: "androidArmv8"
       conan_remotes: https://conan.privatehive.de/artifactory/api/conan/public-conan
       conan_options: "qt/*:GUI=True,qt/*:qtbase=True,qt/*:widgets=True,qt/*:qtdeclarative=True,qt/*:qtsvg=True"
+      import_conan_cache: true
 
   upload_recipe:
     name: "Finalize"
