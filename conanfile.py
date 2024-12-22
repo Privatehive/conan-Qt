@@ -130,9 +130,9 @@ class QtConan(ConanFile):
 
     def requirements(self):
         if self.get_option("openssl"):
-            self.requires("openssl/3.2.0@%s/stable" % self.user)
+            self.requires("openssl/[~3]@%s/stable" % self.user)
         if self.get_option("qtmultimedia"):
-            self.requires("ffmpeg/6.0")
+            self.requires("ffmpeg/[~7]")
 
     def config_options(self):
 
@@ -220,6 +220,7 @@ class QtConan(ConanFile):
         replace_in_file(self, "Qt/qtdeclarative/src/qml/Qt6QmlMacros.cmake", "elseif(UNIX AND NOT APPLE AND NOT ANDROID AND NOT CMAKE_CROSSCOMPILING", "elseif(UNIX AND NOT APPLE AND NOT ANDROID")
         #replace_in_file(self, "Qt/qtdeclarative/src/qml/Qt6QmlMacros.cmake", "string(APPEND content \"prefer :${prefix}\\n\")", "")
         #patch(self, base_path="Qt/qtmultimedia", patch_file=os.path.join("patches", "ffmpeg_plugin_jni_onload_fix.patch"))
+        patch(self, base_path="Qt/qtbase", patch_file=os.path.join("patches", "ios_build.patch"))
         patch(self, base_path="Qt/qtlocation", patch_file=os.path.join("patches", "disable_test_qtlocation.patch"))
         patch(self, base_path="Qt/qtgraphs", patch_file=os.path.join("patches", "disable_test_qtgraphs.patch"))
         patch(self, base_path="Qt/qtdeclarative", patch_file=os.path.join("patches", "qml_plugin_init.patch"))
@@ -247,12 +248,12 @@ class QtConan(ConanFile):
         #tc.variables["CMAKE_FIND_DEBUG_MODE"] = True
         tc.blocks.remove("find_paths") # CMAKE_FIND_PACKAGE_PREFER_CONFIG should be false (the default). We want to use Find modules first
         if cross_building(self):
-            self.output.info('Building Qt submodules: %s' % module_list)
             tc.variables["QT_FORCE_FIND_TOOLS"] = False
             if self.settings.os == "Android":
                 tc.variables["QT_QMAKE_TARGET_MKSPEC"] = "android-clang"
             elif self.settings.os == "iOS":
                 tc.variables["QT_QMAKE_TARGET_MKSPEC"] = "macx-ios-clang"
+                tc.variables["QT_APPLE_SDK"] = self.settings.os.sdk
             else:
                 # targeting raspberry pi
                 tc.variables["QT_QMAKE_TARGET_MKSPEC"] = "devices/linux-rasp-pi-g++"

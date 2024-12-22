@@ -1,0 +1,20 @@
+diff --git a/src/entrypoint/CMakeLists.txt b/src/entrypoint/CMakeLists.txt
+index 1b0783da88..4aa85fd3fd 100644
+--- a/src/entrypoint/CMakeLists.txt
++++ b/src/entrypoint/CMakeLists.txt
+@@ -112,15 +112,6 @@ if(WIN32)
+     qt_internal_add_sync_header_dependencies(EntryPointImplementation Core)
+ endif()
+ 
+-if(UIKIT)
+-    set_target_properties(EntryPointPrivate PROPERTIES
+-        INTERFACE_LINK_OPTIONS "-Wl,-e,_qt_main_wrapper"
+-    )
+-    set_property(TARGET EntryPointPrivate
+-        APPEND PROPERTY INTERFACE_QT_MODULE_LDFLAGS "-Wl,-e,_qt_main_wrapper"
+-    )
+-endif()
+-
+ # ---- Finally, make sure the static library can be consumed by clients -----
+ 
+ if(using_entrypoint_library)
