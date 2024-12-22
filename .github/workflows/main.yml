@@ -31,20 +31,20 @@ jobs:
       conan_options: "qt/*:GUI=True,qt/*:opengl=desktop,qt/*:qtbase=True,qt/*:widgets=True,qt/*:qtdeclarative=True,qt/*:qtsvg=True"
 
   build_macos_qt_host:
-    name: "Macos"
+    name: "Macos Qt host"
     uses: Privatehive/conan-workflows/.github/workflows/createPackage.yml@master
     with:
-      name: "Qt host armv8"
+      name: "armv8"
       image: "macos-14"
       conan_remotes: https://conan.privatehive.de/artifactory/api/conan/public-conan
       conan_options: "qt/*:config=host"
       export_conan_cache: true
 
   build_linux_qt_host:
-    name: "Linux_Host"
+    name: "Linux Qt Host"
     uses: Privatehive/conan-workflows/.github/workflows/createPackage.yml@master
     with:
-      name: "Qt host x86_64"
+      name: "x86_64"
       image: "ubuntu-20.04"
       conan_remotes: https://conan.privatehive.de/artifactory/api/conan/public-conan
       conan_options: "qt/*:config=host"
