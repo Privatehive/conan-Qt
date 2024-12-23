@@ -79,6 +79,7 @@ class QtConan(ConanFile):
         "xml": [True, False],
         "widgetsstyle": [None, "android", "fusion", "mac", "stylesheet", "windows", "windowsvista"],
         "quick2style": [None, "basic", "fusion", "imagine", "ios", "macos", "material", "universal", "windows"],
+        "mmPlugin": [None, "ffmpeg", "gstreamer", "avfoundation", "mediacodec", "wmf"],
         "config": ["ANY"],
         }, **{module: [True,False] for module in submodules})
     
@@ -94,6 +95,7 @@ class QtConan(ConanFile):
         "xml": False,
         "widgetsstyle": None,
         "quick2style": None,
+        "mmPlugin": None,
         "config": "none"}, **{module: False for module in submodules})
     host_options = {**default_options, **{
         "shared": True, 
@@ -107,6 +109,7 @@ class QtConan(ConanFile):
         "xml": True,
         "widgetsstyle": None,
         "quick2style": None,
+        "mmPlugin": None,
         "config": "host",
         # modules
         "qtbase": True,
@@ -131,7 +134,7 @@ class QtConan(ConanFile):
     def requirements(self):
         if self.get_option("openssl"):
             self.requires("openssl/[~3]@%s/stable" % self.user)
-        if self.get_option("qtmultimedia"):
+        if self.get_option("qtmultimedia") and self.get_option("mmPlugin") == "ffmpeg":
             self.requires("ffmpeg/[~7]")
 
     def config_options(self):
@@ -163,7 +166,7 @@ class QtConan(ConanFile):
 
         if self.get_option("openssl"):
             self.options["openssl"].shared = self.get_option("shared")
-        if self.get_option("qtmultimedia"):
+        if self.get_option("qtmultimedia") and self.get_option("mmPlugin") == "ffmpeg":
             self.options["ffmpeg"].shared = self.get_option("shared")
             self.options["ffmpeg"].swresample = True
             self.options["ffmpeg"].with_asm = False
@@ -386,17 +389,27 @@ class QtConan(ConanFile):
             tc.variables["QT_FEATURE_linguist"] = False
 
         if self.get_option("qtmultimedia"):
-            tc.variables["FFMPEG_DIR"] = self.dependencies["ffmpeg"].package_folder
-            tc.variables["QT_DEFAULT_MEDIA_BACKEND"] = "ffmpeg"
-            tc.variables["FEATURE_ffmpeg"] = True
+            tc.variables["FEATURE_ffmpeg"] = False
             tc.variables["FEATURE_wmf"] = False
             tc.variables["FEATURE_gstreamer"] = False
-            tc.variables["FEATURE_gstreamer_1_0"] = False
-            tc.variables["FEATURE_gstreamer_app"] = False
-            tc.variables["FEATURE_gstreamer_gl"] = False
-            tc.variables["FEATURE_gstreamer_photography"] = False
             tc.variables["FEATURE_avfoundation"] = False
-            # For Android no FEATURE_mediacodec flag exists
+            if self.get_option("mmPlugin") == "ffmpeg":
+                tc.variables["FEATURE_ffmpeg"] = True
+                tc.variables["FFMPEG_DIR"] = self.dependencies["ffmpeg"].package_folder
+                tc.variables["QT_DEFAULT_MEDIA_BACKEND"] = "ffmpeg"
+            elif self.get_option("mmPlugin") == "wmf":
+                tc.variables["FEATURE_wmf"] = True
+                tc.variables["QT_DEFAULT_MEDIA_BACKEND"] = "windows"
+            elif self.get_option("mmPlugin") == "mediacodec":
+                # For Android no FEATURE_mediacodec flag exists
+                tc.variables["QT_DEFAULT_MEDIA_BACKEND"] = "android"
+            elif self.get_option("mmPlugin") == "gstreamer":
+                tc.variables["FEATURE_gstreamer"] = True
+                tc.variables["QT_DEFAULT_MEDIA_BACKEND"] = "GStreamer"
+            elif self.get_option("mmPlugin") == "avfoundation":
+                tc.variables["FEATURE_avfoundation"] = True
+                tc.variables["QT_DEFAULT_MEDIA_BACKEND"] = "Darwin"
+            
         if self.get_option("GUI"):
             tc.variables["FEATURE_gui"] = True
         else:
