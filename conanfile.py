@@ -488,6 +488,7 @@ class QtConan(ConanFile):
             tc.variables["FEATURE_opensslv30"] = True
             tc.variables["FEATURE_openssl_linked"] = True
             tc.variables["FEATURE_openssl_runtime"] = False
+            tc.variables["FEATURE_openssl_hash"] = True
             tc.variables["OPENSSL_ROOT_DIR"] = self.dependencies["openssl"].package_folder
         else:
             tc.variables["FEATURE_openssl"] = False
