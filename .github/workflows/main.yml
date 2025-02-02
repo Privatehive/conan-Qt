@@ -112,7 +112,7 @@ jobs:
       image: "macos-15"
       conan_host_profile: "iosArmv8"
       conan_remotes: https://conan.privatehive.de/artifactory/api/conan/public-conan
-      conan_options: "qt/*:GUI=True,qt/*:qtbase=True,qt/*:widgets=True,qt/*:qtdeclarative=True,qt/*:qtsvg=True"
+      conan_options: "qt/*:GUI=True,qt/*:qtbase=True,qt/*:qtdeclarative=True,qt/*:qtsvg=True"
       import_conan_cache: true
 
   upload_recipe:

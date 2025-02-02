@@ -3,13 +3,11 @@
 
 from conan import ConanFile
 from conan.tools.cmake import CMake, CMakeToolchain
-from conan.tools.files import patch, load, get, rmdir, replace_in_file, copy
-from conan.tools.build import cross_building, build_jobs
+from conan.tools.files import patch, get, rmdir, replace_in_file
+from conan.tools.build import cross_building
 from conan.tools.system.package_manager import Apt
 from conan.tools.env import VirtualBuildEnv
-from conan.tools.scm import Git
 import json, os
-import shutil
 import configparser
 import tempfile
 import http.client
