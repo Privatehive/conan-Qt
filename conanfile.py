@@ -69,7 +69,7 @@ class QtConan(ConanFile):
         "shared": [True, False],
         "fPIC": [True, False],
         "lto": [True, False],
-        "opengl": ["no", "es2", "desktop", "dynamic"],
+        "opengl": ["no", "es2", "es3", "es31", "es32", "desktop", "dynamic"],
         "openssl": [True, False],
         "GUI": [True, False],
         "widgets": [True, False],
@@ -473,6 +473,15 @@ class QtConan(ConanFile):
         if self.get_option("opengl") == "es2":
             tc.variables["FEATURE_opengl"] = True
             tc.variables["FEATURE_opengles2"] = True
+        elif self.get_option("opengl") == "es3":
+            tc.variables["FEATURE_opengl"] = True
+            tc.variables["FEATURE_opengles3"] = True
+        elif self.get_option("opengl") == "es31":
+            tc.variables["FEATURE_opengl"] = True
+            tc.variables["FEATURE_opengles31"] = True
+        elif self.get_option("opengl") == "es32":
+            tc.variables["FEATURE_opengl"] = True
+            tc.variables["FEATURE_opengles32"] = True
         elif self.get_option("opengl") == "desktop":
             tc.variables["FEATURE_opengl"] = True
             tc.variables["FEATURE_opengl_desktop"] = True
