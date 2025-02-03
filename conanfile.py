@@ -475,12 +475,18 @@ class QtConan(ConanFile):
             tc.variables["FEATURE_opengles2"] = True
         elif self.get_option("opengl") == "es3":
             tc.variables["FEATURE_opengl"] = True
+            tc.variables["FEATURE_opengles2"] = True
             tc.variables["FEATURE_opengles3"] = True
         elif self.get_option("opengl") == "es31":
             tc.variables["FEATURE_opengl"] = True
+            tc.variables["FEATURE_opengles2"] = True
+            tc.variables["FEATURE_opengles3"] = True
             tc.variables["FEATURE_opengles31"] = True
         elif self.get_option("opengl") == "es32":
             tc.variables["FEATURE_opengl"] = True
+            tc.variables["FEATURE_opengles2"] = True
+            tc.variables["FEATURE_opengles3"] = True
+            tc.variables["FEATURE_opengles31"] = True
             tc.variables["FEATURE_opengles32"] = True
         elif self.get_option("opengl") == "desktop":
             tc.variables["FEATURE_opengl"] = True
