@@ -273,6 +273,8 @@ class QtConan(ConanFile):
                 tc.variables["FEATURE_use_gold_linker"] = False
                 tc.variables["FEATURE_use_gold_linker_alias"] = False
 
+        if self.settings.os == "Windows":
+            tc.variables["FEATURE_system_freetype"] = False
         if self.settings.os == "Linux":
             tc.variables["FEATURE_fontconfig"] = True # FEATURE_system_freetype is needed for FEATURE_fontconfig
             tc.variables["FEATURE_system_freetype"] = True
@@ -280,6 +282,7 @@ class QtConan(ConanFile):
             tc.variables["FEATURE_mtdev"] = False # disable multitouch input for now
         if self.settings.build_type == "Debug":
             tc.variables["FEATURE_optimize_debug"] = False
+        tc.variables["FEATURE_system_zlib"] = False
         tc.variables["FEATURE_system_jpeg"] = False
         tc.variables["FEATURE_system_png"] = False
         tc.variables["FEATURE_system_tiff"] = False
@@ -517,8 +520,8 @@ class QtConan(ConanFile):
         cmake = CMake(self)
         #cmake.configure(cli_args=["--log-level=STATUS --debug-trycompile"], build_script_folder="Qt")
         cmake.configure(build_script_folder="Qt")
-        with open(os.path.join(self.build_folder, "config.summary"), 'r') as f:
-            print(f.read())
+        #with open(os.path.join(self.build_folder, "config.summary"), 'r') as f:
+        #    print(f.read())
         cmake.build()
 
     def package(self):
