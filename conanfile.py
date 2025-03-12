@@ -3,13 +3,11 @@
 
 from conan import ConanFile
 from conan.tools.cmake import CMake, CMakeToolchain
-from conan.tools.files import patch, load, get, rmdir, replace_in_file, copy
-from conan.tools.build import cross_building, build_jobs
+from conan.tools.files import patch, get, rmdir, replace_in_file
+from conan.tools.build import cross_building
 from conan.tools.system.package_manager import Apt
 from conan.tools.env import VirtualBuildEnv
-from conan.tools.scm import Git
 import json, os
-import shutil
 import configparser
 import tempfile
 import http.client
@@ -71,7 +69,7 @@ class QtConan(ConanFile):
         "shared": [True, False],
         "fPIC": [True, False],
         "lto": [True, False],
-        "opengl": ["no", "es2", "desktop", "dynamic"],
+        "opengl": ["no", "es2", "es3", "es31", "es32", "desktop", "dynamic"],
         "openssl": [True, False],
         "GUI": [True, False],
         "widgets": [True, False],
@@ -79,6 +77,7 @@ class QtConan(ConanFile):
         "xml": [True, False],
         "widgetsstyle": [None, "android", "fusion", "mac", "stylesheet", "windows", "windowsvista"],
         "quick2style": [None, "basic", "fusion", "imagine", "ios", "macos", "material", "universal", "windows"],
+        "mmPlugin": [None, "ffmpeg", "gstreamer", "avfoundation", "mediacodec", "wmf"],
         "config": ["ANY"],
         }, **{module: [True,False] for module in submodules})
     
@@ -94,6 +93,7 @@ class QtConan(ConanFile):
         "xml": False,
         "widgetsstyle": None,
         "quick2style": None,
+        "mmPlugin": None,
         "config": "none"}, **{module: False for module in submodules})
     host_options = {**default_options, **{
         "shared": True, 
@@ -107,6 +107,7 @@ class QtConan(ConanFile):
         "xml": True,
         "widgetsstyle": None,
         "quick2style": None,
+        "mmPlugin": None,
         "config": "host",
         # modules
         "qtbase": True,
@@ -131,7 +132,7 @@ class QtConan(ConanFile):
     def requirements(self):
         if self.get_option("openssl"):
             self.requires("openssl/[~3]@%s/stable" % self.user)
-        if self.get_option("qtmultimedia"):
+        if self.get_option("qtmultimedia") and self.get_option("mmPlugin") == "ffmpeg":
             self.requires("ffmpeg/[~7]")
 
     def config_options(self):
@@ -163,7 +164,7 @@ class QtConan(ConanFile):
 
         if self.get_option("openssl"):
             self.options["openssl"].shared = self.get_option("shared")
-        if self.get_option("qtmultimedia"):
+        if self.get_option("qtmultimedia") and self.get_option("mmPlugin") == "ffmpeg":
             self.options["ffmpeg"].shared = self.get_option("shared")
             self.options["ffmpeg"].swresample = True
             self.options["ffmpeg"].with_asm = False
@@ -272,6 +273,8 @@ class QtConan(ConanFile):
                 tc.variables["FEATURE_use_gold_linker"] = False
                 tc.variables["FEATURE_use_gold_linker_alias"] = False
 
+        if self.settings.os == "Windows":
+            tc.variables["FEATURE_system_freetype"] = False
         if self.settings.os == "Linux":
             tc.variables["FEATURE_fontconfig"] = True # FEATURE_system_freetype is needed for FEATURE_fontconfig
             tc.variables["FEATURE_system_freetype"] = True
@@ -279,6 +282,7 @@ class QtConan(ConanFile):
             tc.variables["FEATURE_mtdev"] = False # disable multitouch input for now
         if self.settings.build_type == "Debug":
             tc.variables["FEATURE_optimize_debug"] = False
+        tc.variables["FEATURE_system_zlib"] = False
         tc.variables["FEATURE_system_jpeg"] = False
         tc.variables["FEATURE_system_png"] = False
         tc.variables["FEATURE_system_tiff"] = False
@@ -386,17 +390,27 @@ class QtConan(ConanFile):
             tc.variables["QT_FEATURE_linguist"] = False
 
         if self.get_option("qtmultimedia"):
-            tc.variables["FFMPEG_DIR"] = self.dependencies["ffmpeg"].package_folder
-            tc.variables["QT_DEFAULT_MEDIA_BACKEND"] = "ffmpeg"
-            tc.variables["FEATURE_ffmpeg"] = True
+            tc.variables["FEATURE_ffmpeg"] = False
             tc.variables["FEATURE_wmf"] = False
             tc.variables["FEATURE_gstreamer"] = False
-            tc.variables["FEATURE_gstreamer_1_0"] = False
-            tc.variables["FEATURE_gstreamer_app"] = False
-            tc.variables["FEATURE_gstreamer_gl"] = False
-            tc.variables["FEATURE_gstreamer_photography"] = False
             tc.variables["FEATURE_avfoundation"] = False
-            # For Android no FEATURE_mediacodec flag exists
+            if self.get_option("mmPlugin") == "ffmpeg":
+                tc.variables["FEATURE_ffmpeg"] = True
+                tc.variables["FFMPEG_DIR"] = self.dependencies["ffmpeg"].package_folder
+                tc.variables["QT_DEFAULT_MEDIA_BACKEND"] = "ffmpeg"
+            elif self.get_option("mmPlugin") == "wmf":
+                tc.variables["FEATURE_wmf"] = True
+                tc.variables["QT_DEFAULT_MEDIA_BACKEND"] = "windows"
+            elif self.get_option("mmPlugin") == "mediacodec":
+                # For Android no FEATURE_mediacodec flag exists
+                tc.variables["QT_DEFAULT_MEDIA_BACKEND"] = "android"
+            elif self.get_option("mmPlugin") == "gstreamer":
+                tc.variables["FEATURE_gstreamer"] = True
+                tc.variables["QT_DEFAULT_MEDIA_BACKEND"] = "GStreamer"
+            elif self.get_option("mmPlugin") == "avfoundation":
+                tc.variables["FEATURE_avfoundation"] = True
+                tc.variables["QT_DEFAULT_MEDIA_BACKEND"] = "Darwin"
+            
         if self.get_option("GUI"):
             tc.variables["FEATURE_gui"] = True
         else:
@@ -462,6 +476,21 @@ class QtConan(ConanFile):
         if self.get_option("opengl") == "es2":
             tc.variables["FEATURE_opengl"] = True
             tc.variables["FEATURE_opengles2"] = True
+        elif self.get_option("opengl") == "es3":
+            tc.variables["FEATURE_opengl"] = True
+            tc.variables["FEATURE_opengles2"] = True
+            tc.variables["FEATURE_opengles3"] = True
+        elif self.get_option("opengl") == "es31":
+            tc.variables["FEATURE_opengl"] = True
+            tc.variables["FEATURE_opengles2"] = True
+            tc.variables["FEATURE_opengles3"] = True
+            tc.variables["FEATURE_opengles31"] = True
+        elif self.get_option("opengl") == "es32":
+            tc.variables["FEATURE_opengl"] = True
+            tc.variables["FEATURE_opengles2"] = True
+            tc.variables["FEATURE_opengles3"] = True
+            tc.variables["FEATURE_opengles31"] = True
+            tc.variables["FEATURE_opengles32"] = True
         elif self.get_option("opengl") == "desktop":
             tc.variables["FEATURE_opengl"] = True
             tc.variables["FEATURE_opengl_desktop"] = True
@@ -475,6 +504,7 @@ class QtConan(ConanFile):
             tc.variables["FEATURE_opensslv30"] = True
             tc.variables["FEATURE_openssl_linked"] = True
             tc.variables["FEATURE_openssl_runtime"] = False
+            tc.variables["FEATURE_openssl_hash"] = True
             tc.variables["OPENSSL_ROOT_DIR"] = self.dependencies["openssl"].package_folder
         else:
             tc.variables["FEATURE_openssl"] = False
@@ -490,8 +520,8 @@ class QtConan(ConanFile):
         cmake = CMake(self)
         #cmake.configure(cli_args=["--log-level=STATUS --debug-trycompile"], build_script_folder="Qt")
         cmake.configure(build_script_folder="Qt")
-        with open(os.path.join(self.build_folder, "config.summary"), 'r') as f:
-            print(f.read())
+        #with open(os.path.join(self.build_folder, "config.summary"), 'r') as f:
+        #    print(f.read())
         cmake.build()
 
     def package(self):
