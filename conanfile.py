@@ -393,6 +393,8 @@ class QtConan(ConanFile):
             tc.variables["FEATURE_ffmpeg"] = False
             tc.variables["FEATURE_wmf"] = False
             tc.variables["FEATURE_gstreamer"] = False
+            tc.variables["FEATURE_pipewire"] = False
+            tc.variables["FEATURE_pipewire_screencapture"] = False
             tc.variables["FEATURE_avfoundation"] = False
             if self.get_option("mmPlugin") == "ffmpeg":
                 tc.variables["FEATURE_ffmpeg"] = True
@@ -520,8 +522,8 @@ class QtConan(ConanFile):
         cmake = CMake(self)
         #cmake.configure(cli_args=["--log-level=STATUS --debug-trycompile"], build_script_folder="Qt")
         cmake.configure(build_script_folder="Qt")
-        #with open(os.path.join(self.build_folder, "config.summary"), 'r') as f:
-        #    print(f.read())
+        with open(os.path.join(self.build_folder, "config.summary"), 'r') as f:
+            print(f.read())
         cmake.build()
 
     def package(self):

@@ -1,18 +1,18 @@
 diff --git a/configure.cmake b/configure.cmake
-index 7e5cf30e2..aebe0e37d 100644
+index 798078a49..51561556d 100644
 --- a/configure.cmake
 +++ b/configure.cmake
-@@ -17,7 +17,7 @@
- # Presumably because 6.0 ClangConfig.cmake files are not good enough?
- # In any case explicitly request a minimum version of 8.x for now, otherwise
- # building with CMake will fail at compilation time.
+@@ -3,7 +3,7 @@
+ 
+ #### Tests
+ 
 -qt_find_package(WrapLibClang 8 PROVIDED_TARGETS WrapLibClang::WrapLibClang)
 +#qt_find_package(WrapLibClang 8 PROVIDED_TARGETS WrapLibClang::WrapLibClang)
- # special case end
  
  if(TARGET WrapLibClang::WrapLibClang)
+     set(TEST_libclang "ON" CACHE BOOL "Required libclang version found." FORCE)
 diff --git a/src/linguist/CMakeLists.txt b/src/linguist/CMakeLists.txt
-index 20ec24733..edda919ad 100644
+index 933f882b1..2411d4914 100644
 --- a/src/linguist/CMakeLists.txt
 +++ b/src/linguist/CMakeLists.txt
 @@ -5,16 +5,13 @@ qt_exclude_tool_directories_from_default_target(
@@ -30,6 +30,6 @@ index 20ec24733..edda919ad 100644
  add_subdirectory(lupdate-pro)
 -if(QT_FEATURE_process AND QT_FEATURE_pushbutton AND QT_FEATURE_toolbutton
 +if(QT_FEATURE_linguist AND QT_FEATURE_process AND QT_FEATURE_pushbutton AND QT_FEATURE_toolbutton
-     AND QT_FEATURE_png AND QT_FEATURE_printsupport AND TARGET Qt::Widgets)
+     AND QT_FEATURE_png AND TARGET Qt::Widgets)
      add_subdirectory(linguist)
  endif()
