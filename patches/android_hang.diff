@@ -1,0 +1,45 @@
+diff --git a/src/android/jar/src/org/qtproject/qt/android/QtNative.java b/src/android/jar/src/org/qtproject/qt/android/QtNative.java
+index b07bd88ff1f..65118afe328 100644
+--- a/src/android/jar/src/org/qtproject/qt/android/QtNative.java
++++ b/src/android/jar/src/org/qtproject/qt/android/QtNative.java
+@@ -356,7 +356,7 @@ public class QtNative
+ 
+     static void startApplication(String params, String mainLib)
+     {
+-        if (m_stateDetails.isStarted)
++        if (isQtApplicationStarted())
+             return;
+ 
+         QtThread thread = getQtThread();
+@@ -465,6 +465,7 @@ public class QtNative
+     static native void quitQtAndroidPlugin();
+     static native void terminateQt();
+     static native boolean updateNativeActivity();
++    static native boolean isQtApplicationStarted();
+     // application methods
+ 
+     // application methods
+diff --git a/src/plugins/platforms/android/androidjnimain.cpp b/src/plugins/platforms/android/androidjnimain.cpp
+index e7eefa01364..d8f02aa70a9 100644
+--- a/src/plugins/platforms/android/androidjnimain.cpp
++++ b/src/plugins/platforms/android/androidjnimain.cpp
+@@ -483,6 +483,11 @@ static void startQtApplication(JNIEnv */*env*/, jclass /*clazz*/)
+         exit(ret);
+ }
+ 
++static jboolean isQtApplicationStarted(JNIEnv */*env*/, jclass /*clazz*/)
++{
++    return startQtAndroidPluginCalled.loadAcquire();
++}
++
+ static void quitQtCoreApplication(JNIEnv *env, jclass /*clazz*/)
+ {
+     Q_UNUSED(env);
+@@ -752,6 +757,7 @@ static JNINativeMethod methods[] = {
+     { "onNewIntent", "(Landroid/content/Intent;)V", (void *)onNewIntent },
+     { "onBind", "(Landroid/content/Intent;)Landroid/os/IBinder;", (void *)onBind },
+     { "updateLocale", "()V", (void *)updateLocale },
++    { "isQtApplicationStarted", "()Z", (void *)isQtApplicationStarted },
+ };
+ 
+ #define FIND_AND_CHECK_CLASS(CLASS_NAME) \
