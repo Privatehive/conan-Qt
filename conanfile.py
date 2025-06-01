@@ -71,6 +71,7 @@ class QtConan(ConanFile):
         "lto": [True, False],
         "opengl": ["no", "es2", "es3", "es31", "es32", "desktop", "dynamic"],
         "openssl": [True, False],
+        "openssl_hash": [True, False],
         "GUI": [True, False],
         "widgets": [True, False],
         "dbus": [True, False],
@@ -87,6 +88,7 @@ class QtConan(ConanFile):
         "lto": False,
         "opengl": "no",
         "openssl": False, 
+        "openssl_hash": False,
         "GUI": False, 
         "widgets": False,
         "dbus": False,
@@ -100,7 +102,8 @@ class QtConan(ConanFile):
         "fPIC": True,
         "lto": False,
         "opengl": "desktop",
-        "openssl": False, 
+        "openssl": False,
+        "openssl_hash": False,
         "GUI": True, 
         "widgets": True,
         "dbus": False,
@@ -131,14 +134,13 @@ class QtConan(ConanFile):
 
     def requirements(self):
         if self.get_option("openssl"):
-            self.requires("openssl/[~3]@%s/stable" % self.user)
+            self.requires("openssl/[~3.0]@%s/stable" % self.user)
         if self.get_option("qtmultimedia") and self.get_option("mmPlugin") == "ffmpeg":
             self.requires("ffmpeg/[~7]")
 
     def config_options(self):
 
         assert QtConan.version == QtConan.submodules['qtbase']['branch']
-
         self.options.qtbase = True
 
     @property
@@ -155,6 +157,12 @@ class QtConan(ConanFile):
             return self.options.get_safe(key)
 
     def configure(self):
+        if self.options.openssl:
+            if self.options.openssl_hash:
+                self.output.warning("A Qt workaround is necessary: https://bugreports.qt.io/browse/QTBUG-136223")
+        else:
+            self.options.rm_safe("openssl_hash")
+
         if self.is_host_build:
             for option in self.default_options:
                 if str(option) != "config":
@@ -507,7 +515,7 @@ class QtConan(ConanFile):
             tc.variables["FEATURE_opensslv30"] = True
             tc.variables["FEATURE_openssl_linked"] = True
             tc.variables["FEATURE_openssl_runtime"] = False
-            tc.variables["FEATURE_openssl_hash"] = True
+            tc.variables["FEATURE_openssl_hash"] = self.get_option("openssl_hash") # Bug: https://bugreports.qt.io/browse/QTBUG-136223
             tc.variables["OPENSSL_ROOT_DIR"] = self.dependencies["openssl"].package_folder
         else:
             tc.variables["FEATURE_openssl"] = False
