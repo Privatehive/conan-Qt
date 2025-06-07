@@ -58,7 +58,7 @@ class QtConan(ConanFile):
     url = jsonInfo["repository"]
     # ---Requirements---
     requires = []
-    tool_requires = ["cmake/[>=3.21.7]", "ninja/[>=1.11.1]"]
+    tool_requires = ["cmake/[>=3.22.6 <3.31.0]", "ninja/[>=1.11.1]"]
     # ---Sources---
     exports = ["info.json"]
     exports_sources = ["CMakeLists.txt", "AwesomeQtMetadataParser", "patches/*"]
@@ -131,7 +131,7 @@ class QtConan(ConanFile):
 
     def requirements(self):
         if self.get_option("openssl"):
-            self.requires("openssl/[~3]@%s/stable" % self.user)
+            self.requires("openssl/[~3.0]@%s/stable" % self.user)
         if self.get_option("qtmultimedia") and self.get_option("mmPlugin") == "ffmpeg":
             self.requires("ffmpeg/[~7]")
 
@@ -226,7 +226,8 @@ class QtConan(ConanFile):
         patch(self, base_path="Qt/qtgraphs", patch_file=os.path.join("patches", "disable_test_qtgraphs.patch"))
         patch(self, base_path="Qt/qtdeclarative", patch_file=os.path.join("patches", "qml_plugin_init.patch"))
         patch(self, base_path="Qt/qttools", patch_file=os.path.join("patches", "fix_dbusviewer_wo_xml.patch"))
-        
+        patch(self, base_path="Qt/qtbase", patch_file=os.path.join("patches", "android_hang.diff"))
+
         rmdir(self, "Qt/qtwebengine")
 
         # enable rasp-pi brcm opengl implementation (very unstable - don't use)
@@ -393,6 +394,8 @@ class QtConan(ConanFile):
             tc.variables["FEATURE_ffmpeg"] = False
             tc.variables["FEATURE_wmf"] = False
             tc.variables["FEATURE_gstreamer"] = False
+            tc.variables["FEATURE_pipewire"] = False
+            tc.variables["FEATURE_pipewire_screencapture"] = False
             tc.variables["FEATURE_avfoundation"] = False
             if self.get_option("mmPlugin") == "ffmpeg":
                 tc.variables["FEATURE_ffmpeg"] = True
@@ -504,7 +507,7 @@ class QtConan(ConanFile):
             tc.variables["FEATURE_opensslv30"] = True
             tc.variables["FEATURE_openssl_linked"] = True
             tc.variables["FEATURE_openssl_runtime"] = False
-            tc.variables["FEATURE_openssl_hash"] = True
+            tc.variables["FEATURE_openssl_hash"] = False
             tc.variables["OPENSSL_ROOT_DIR"] = self.dependencies["openssl"].package_folder
         else:
             tc.variables["FEATURE_openssl"] = False
