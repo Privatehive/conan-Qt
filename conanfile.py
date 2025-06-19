@@ -76,6 +76,7 @@ class QtConan(ConanFile):
         "widgets": [True, False],
         "dbus": [True, False],
         "xml": [True, False],
+        "fontconfig": [True, False],
         "widgetsstyle": [None, "android", "fusion", "mac", "stylesheet", "windows", "windowsvista"],
         "quick2style": [None, "basic", "fusion", "imagine", "ios", "macos", "material", "universal", "windows"],
         "mmPlugin": [None, "ffmpeg", "gstreamer", "avfoundation", "mediacodec", "wmf"],
@@ -93,6 +94,7 @@ class QtConan(ConanFile):
         "widgets": False,
         "dbus": False,
         "xml": False,
+        "fontconfig": False,
         "widgetsstyle": None,
         "quick2style": None,
         "mmPlugin": None,
@@ -106,8 +108,9 @@ class QtConan(ConanFile):
         "openssl_hash": False,
         "GUI": True, 
         "widgets": True,
-        "dbus": False,
+        "dbus": True,
         "xml": True,
+        "fontconfig": True,
         "widgetsstyle": None,
         "quick2style": None,
         "mmPlugin": None,
@@ -169,6 +172,9 @@ class QtConan(ConanFile):
                     self.options.rm_safe(option)
         else:
             self.options.rm_safe("config")
+
+        if self.settings.os != "Linux":
+            self.options.rm_safe("fontconfig")
 
         if self.get_option("openssl"):
             self.options["openssl"].shared = self.get_option("shared")
@@ -233,9 +239,9 @@ class QtConan(ConanFile):
         patch(self, base_path="Qt/qtlocation", patch_file=os.path.join("patches", "disable_test_qtlocation.patch"))
         patch(self, base_path="Qt/qtgraphs", patch_file=os.path.join("patches", "disable_test_qtgraphs.patch"))
         patch(self, base_path="Qt/qtdeclarative", patch_file=os.path.join("patches", "qml_plugin_init.patch"))
+        patch(self, base_path="Qt/qtdeclarative", patch_file=os.path.join("patches", "disable_qml_tools.patch"))
         patch(self, base_path="Qt/qttools", patch_file=os.path.join("patches", "fix_dbusviewer_wo_xml.patch"))
         patch(self, base_path="Qt/qtbase", patch_file=os.path.join("patches", "android_hang.diff"))
-        
         rmdir(self, "Qt/qtwebengine")
 
         # enable rasp-pi brcm opengl implementation (very unstable - don't use)
@@ -247,11 +253,14 @@ class QtConan(ConanFile):
         ms = VirtualBuildEnv(self)
         module_list = []
         for module in QtConan.submodules:
+            tc.variables["BUILD_" + module] = False
             if self.is_host_build:
                 if self.host_options[module]:
+                    tc.variables["BUILD_" + module] = True
                     module_list.append(module)                
             else:
                 if getattr(self.options, module):
+                    tc.variables["BUILD_" + module] = True
                     module_list.append(module)
         self.output.info('Building Qt submodules: %s' % module_list)
         tc.variables["QT_BUILD_SUBMODULES"] = ";".join(module_list)
@@ -285,8 +294,13 @@ class QtConan(ConanFile):
         if self.settings.os == "Windows":
             tc.variables["FEATURE_system_freetype"] = False
         if self.settings.os == "Linux":
-            tc.variables["FEATURE_fontconfig"] = True # FEATURE_system_freetype is needed for FEATURE_fontconfig
-            tc.variables["FEATURE_system_freetype"] = True
+            if self.get_option("fontconfig"):
+                tc.variables["FEATURE_fontconfig"] = True # FEATURE_system_freetype is needed for FEATURE_fontconfig
+                tc.variables["FEATURE_system_freetype"] = True
+            else:
+                tc.variables["FEATURE_fontconfig"] = False
+                tc.variables["FEATURE_freetype"] = True
+                tc.variables["FEATURE_system_freetype"] = False
             tc.variables["FEATURE_tslib"] = False # disable multitouch input for now
             tc.variables["FEATURE_mtdev"] = False # disable multitouch input for now
         if self.settings.build_type == "Debug":
