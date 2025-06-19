@@ -42,13 +42,12 @@ def getsubmodules(version, status_filter=None):
             return res
 
 class QtConan(ConanFile):
-
     jsonInfo = json.load(open("info.json", 'r'))
     # ---Package reference---
     name = jsonInfo["projectName"]
-    version = jsonInfo["version"]
+    version = "%u.%u.%u" % (jsonInfo["version"]["major"], jsonInfo["version"]["minor"], jsonInfo["version"]["patch"])
     user = jsonInfo["domain"]
-    channel = "stable"
+    channel = "%s" % ("snapshot" if jsonInfo["version"]["snapshot"] else "stable")
     # ---Metadata---
     description = jsonInfo["projectDescription"]
     license = jsonInfo["license"]
