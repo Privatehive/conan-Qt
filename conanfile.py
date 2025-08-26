@@ -336,7 +336,7 @@ class QtConan(ConanFile):
             tc.variables["FEATURE_clang"] = True
             tc.variables["FEATURE_clangcpp"] = True
             tc.variables["FEATURE_qdoc"] = True
-            tc.variables["LLVM_INSTALL_DIR"] = os.path.join(self.build_folder, "libclang")
+            tc.variables["LLVM_INSTALL_DIR"] = os.path.join(self.build_folder, "libclang").replace("\\", "/")
         else:
             tc.variables["TEST_libclang"] = False
             tc.variables["FEATURE_clang"] = False
