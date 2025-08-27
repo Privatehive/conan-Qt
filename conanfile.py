@@ -333,6 +333,7 @@ class QtConan(ConanFile):
         tc.variables["FEATURE_libudev"] = False
         if self.get_option("qtdoc"):
             #tc.variables["TEST_libclang"] = True
+            tc.variables["QT_FEATURE_clang_rtti"] = True
             tc.variables["FEATURE_clang"] = True
             tc.variables["FEATURE_clangcpp"] = True
             tc.variables["FEATURE_qdoc"] = True
