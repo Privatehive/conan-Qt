@@ -60,7 +60,7 @@ class QtConan(ConanFile):
     requires = []
     tool_requires = ["cmake/[>=3.22.6 <3.31.0]", "ninja/[>=1.11.1]", "7zip/[*]@%s/stable" % user]
     # ---Sources---
-    exports = ["info.json"]
+    exports = ["info.json", "profiles/*"]
     exports_sources = ["CMakeLists.txt", "AwesomeQtMetadataParser", "patches/*"]
     # ---Binary model---
     settings = "os", "compiler", "build_type", "arch"
