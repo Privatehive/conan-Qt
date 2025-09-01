@@ -120,6 +120,7 @@ class QtConan(ConanFile):
         "qttranslations": True,
         "qtquick3d": True,
         "qtremoteobjects": True,
+        "qtdoc": True
     }}
     # ---Build---
     generators = []
