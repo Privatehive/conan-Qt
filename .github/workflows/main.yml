@@ -17,7 +17,8 @@ jobs:
     with:
       name: "x86_64"
       image: "windows-2022"
-      conan_host_profile: "windowsMinGW"
+      conan_host_profile_path: "profiles/windowsMinGW.host.profile"
+      conan_build_profile_path: "profiles/windowsMinGW.build.profile"
       conan_remotes: https://conan.privatehive.de/artifactory/api/conan/public-conan
       conan_options: "qt/*:GUI=True,qt/*:opengl=desktop,qt/*:qtbase=True,qt/*:widgets=True,qt/*:qtdeclarative=True,qt/*:qtsvg=True"
 
@@ -50,6 +51,19 @@ jobs:
       conan_options: "qt/*:config=host"
       export_conan_cache: true
 
+  build_linux_rpi_armv6:
+    name: "Linux (Raspberry Pi)"
+    uses: Privatehive/conan-workflows/.github/workflows/createPackage.yml@master
+    needs: [ build_linux_qt_host ]
+    if: ${{ success() }}
+    with:
+      name: "armv6"
+      image: "ubuntu-22.04"
+      conan_host_profile_path: "profiles/raspberrypiosArmv6.host.profile"
+      conan_remotes: https://conan.privatehive.de/artifactory/api/conan/public-conan
+      conan_options: "qt/*:GUI=True,qt/*:qtbase=True,qt/*:widgets=True,qt/*:qtdeclarative=True,qt/*:qtsvg=True"
+      import_conan_cache: true
+
   build_android_x86:
     name: "Android"
     uses: Privatehive/conan-workflows/.github/workflows/createPackage.yml@master
@@ -58,7 +72,8 @@ jobs:
     with:
       name: "x86"
       image: "ubuntu-22.04"
-      conan_host_profile: "androidx86"
+      conan_host_profile_path: "profiles/androidx86.host.profile"
+      conan_build_profile_path: "profiles/android.build.profile"
       conan_remotes: https://conan.privatehive.de/artifactory/api/conan/public-conan
       conan_options: "qt/*:GUI=True,qt/*:qtbase=True,qt/*:widgets=True,qt/*:qtdeclarative=True,qt/*:qtsvg=True"
       import_conan_cache: true
@@ -71,7 +86,8 @@ jobs:
     with:
       name: "x86_64"
       image: "ubuntu-22.04"
-      conan_host_profile: "androidx86_64"
+      conan_host_profile_path: "profiles/androidx86_64.host.profile"
+      conan_build_profile_path: "profiles/android.build.profile"
       conan_remotes: https://conan.privatehive.de/artifactory/api/conan/public-conan
       conan_options: "qt/*:GUI=True,qt/*:qtbase=True,qt/*:widgets=True,qt/*:qtdeclarative=True,qt/*:qtsvg=True"
       import_conan_cache: true
@@ -84,7 +100,8 @@ jobs:
     with:
       name: "armv7"
       image: "ubuntu-22.04"
-      conan_host_profile: "androidArmv7"
+      conan_host_profile_path: "profiles/androidArmv7.host.profile"
+      conan_build_profile_path: "profiles/android.build.profile"
       conan_remotes: https://conan.privatehive.de/artifactory/api/conan/public-conan
       conan_options: "qt/*:GUI=True,qt/*:qtbase=True,qt/*:widgets=True,qt/*:qtdeclarative=True,qt/*:qtsvg=True"
       import_conan_cache: true
@@ -97,7 +114,8 @@ jobs:
     with:
       name: "armv8"
       image: "ubuntu-22.04"
-      conan_host_profile: "androidArmv8"
+      conan_host_profile_path: "profiles/androidArmv8.host.profile"
+      conan_build_profile_path: "profiles/android.build.profile"
       conan_remotes: https://conan.privatehive.de/artifactory/api/conan/public-conan
       conan_options: "qt/*:GUI=True,qt/*:qtbase=True,qt/*:widgets=True,qt/*:qtdeclarative=True,qt/*:qtsvg=True"
       import_conan_cache: true
@@ -110,7 +128,7 @@ jobs:
     with:
       name: "armv8"
       image: "macos-15"
-      conan_host_profile: "iosArmv8"
+      conan_host_profile_path: "profiles/iosArmv8.host.profile"
       conan_remotes: https://conan.privatehive.de/artifactory/api/conan/public-conan
       conan_options: "qt/*:GUI=True,qt/*:qtbase=True,qt/*:opengl=es3,qt/*:qtdeclarative=True,qt/*:qtsvg=True"
       import_conan_cache: true
@@ -118,7 +136,7 @@ jobs:
   upload_recipe:
     name: "Finalize"
     uses: Privatehive/conan-workflows/.github/workflows/uploadRecipe.yml@master
-    needs: [ build_linux_x86_64, build_windows_x86_64, build_macos_armv8, build_android_x86, build_android_x86_64, build_android_armv7, build_android_armv8, build_ios_armv8 ]
+    needs: [ build_linux_x86_64, build_windows_x86_64, build_macos_armv8, build_linux_rpi_armv6, build_android_x86, build_android_x86_64, build_android_armv7, build_android_armv8, build_ios_armv8 ]
     if: ${{ success() }}
     secrets: inherit
     with:

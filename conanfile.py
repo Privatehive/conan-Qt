@@ -3,7 +3,7 @@
 
 from conan import ConanFile
 from conan.tools.cmake import CMake, CMakeToolchain
-from conan.tools.files import patch, get, rmdir, replace_in_file
+from conan.tools.files import patch, get, rmdir, replace_in_file, download
 from conan.tools.build import cross_building
 from conan.tools.system.package_manager import Apt
 from conan.tools.env import VirtualBuildEnv
@@ -57,9 +57,9 @@ class QtConan(ConanFile):
     url = jsonInfo["repository"]
     # ---Requirements---
     requires = []
-    tool_requires = ["cmake/[>=3.22.6 <3.31.0]", "ninja/[>=1.11.1]"]
+    tool_requires = ["cmake/[>=3.22.6 <3.31.0]", "ninja/[>=1.11.1]", "7zip/[*]@%s/stable" % user]
     # ---Sources---
-    exports = ["info.json"]
+    exports = ["info.json", "profiles/*"]
     exports_sources = ["CMakeLists.txt", "AwesomeQtMetadataParser", "patches/*"]
     # ---Binary model---
     settings = "os", "compiler", "build_type", "arch"
@@ -122,6 +122,7 @@ class QtConan(ConanFile):
         "qttranslations": True,
         "qtquick3d": True,
         "qtremoteobjects": True,
+        "qtdoc": True
     }}
     # ---Build---
     generators = []
@@ -217,6 +218,7 @@ class QtConan(ConanFile):
                     pack_names.append("libgl1-mesa-dev")
             if self.get_option("qtmultimedia"):
                 pack_names.extend(["libasound2-dev", "libpulse-dev"])
+
             apt.install(pack_names, update=True)
 
     def source(self):
@@ -240,7 +242,7 @@ class QtConan(ConanFile):
         patch(self, base_path="Qt/qtdeclarative", patch_file=os.path.join("patches", "qml_plugin_init.patch"))
         patch(self, base_path="Qt/qtdeclarative", patch_file=os.path.join("patches", "disable_qml_tools.patch"))
         patch(self, base_path="Qt/qttools", patch_file=os.path.join("patches", "fix_dbusviewer_wo_xml.patch"))
-        patch(self, base_path="Qt/qtbase", patch_file=os.path.join("patches", "android_hang.diff"))
+        #patch(self, base_path="Qt/qtbase", patch_file=os.path.join("patches", "android_hang.diff"))
         rmdir(self, "Qt/qtwebengine")
 
         # enable rasp-pi brcm opengl implementation (very unstable - don't use)
@@ -336,9 +338,18 @@ class QtConan(ConanFile):
         tc.variables["FEATURE_slog2"] = False
         tc.variables["FEATURE_zstd"] = False
         tc.variables["FEATURE_libudev"] = False
-        tc.variables["TEST_libclang"] = False
-        tc.variables["FEATURE_clang"] = False
-        tc.variables["FEATURE_clangcpp"] = False
+        if self.get_option("qtdoc"):
+            #tc.variables["TEST_libclang"] = True
+            tc.variables["QT_FEATURE_clang_rtti"] = True
+            tc.variables["FEATURE_clang"] = True
+            tc.variables["FEATURE_clangcpp"] = True
+            tc.variables["FEATURE_qdoc"] = True
+            tc.variables["LLVM_INSTALL_DIR"] = os.path.join(self.build_folder, "libclang").replace("\\", "/")
+        else:
+            tc.variables["TEST_libclang"] = False
+            tc.variables["FEATURE_clang"] = False
+            tc.variables["FEATURE_clangcpp"] = False
+            tc.variables["FEATURE_qdoc"] = False
         tc.variables["FEATURE_testlib"] = False
         tc.variables["FEATURE_private_tests"] = False
         tc.variables["FEATURE_testlib_selfcover"] = False
@@ -541,6 +552,11 @@ class QtConan(ConanFile):
         ms.generate()
 
     def build(self):
+
+        if self.get_option("qtdoc"):
+            download(self, **self.conan_data["sources"]["libclang"][str(self.settings.os)])
+            self.run("7z x -y libclang.7z -o%s" % self.build_folder)
+
         cmake = CMake(self)
         #cmake.configure(cli_args=["--log-level=STATUS --debug-trycompile"], build_script_folder="Qt")
         cmake.configure(build_script_folder="Qt")
@@ -567,6 +583,9 @@ class QtConan(ConanFile):
             self.runenv_info.prepend_path("QML_IMPORT_PATH", os.path.join(self.package_folder, "qml"))
             self.cpp_info.builddirs = ["lib/cmake"]
         
+        if self.get_option("qtdoc"):
+            self.buildenv_info.define_path("QT_INSTALL_DOCS", os.path.join(self.package_folder, "doc"))
+
         if not cross_building(self):
             self.buildenv_info.prepend_path("PATH", os.path.join(self.package_folder, "bin"))
             self.buildenv_info.prepend_path("PATH", os.path.join(self.package_folder, "qttools", "bin"))
