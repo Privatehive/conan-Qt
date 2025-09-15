@@ -49,4 +49,4 @@ Use the provided conan [profiles](./profiles) to (cross) compile Qt:
 | `Android`              | `x86`    | `Linux`   | [androidx86.host.profile](./profiles/androidx86.host.profile)                 | [android.build.profile](./profiles/android.build.profile) |
 | `Android`              | `x86_64` | `Linux`   | [androidx86_64.host.profile](./profiles/androidx86_64.host.profile)           | [android.build.profile](./profiles/android.build.profile) |
 | `Android`              | `armv7`  | `Linux`   | [androidArmv7.host.profile](./profiles/androidArmv7.host.profile)             | [android.build.profile](./profiles/android.build.profile) |
-| `Android`              | `armv8`  | `Linux`   | [androidArmv8.host.profile](./profiles/androidArmv8.host.profile)             | [android.build.profile](./profiles/android.build.profile)  |
+| `Android`              | `armv8`  | `Linux`   | [androidArmv8.host.profile](./profiles/androidArmv8.host.profile)             | [android.build.profile](./profiles/android.build.profile) |
