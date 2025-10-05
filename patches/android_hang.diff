@@ -20,10 +20,10 @@ index b07bd88ff1f..65118afe328 100644
  
      // application methods
 diff --git a/src/plugins/platforms/android/androidjnimain.cpp b/src/plugins/platforms/android/androidjnimain.cpp
-index e7eefa01364..d8f02aa70a9 100644
+index c6afdc716db..63e5e99e87e 100644
 --- a/src/plugins/platforms/android/androidjnimain.cpp
 +++ b/src/plugins/platforms/android/androidjnimain.cpp
-@@ -483,6 +483,11 @@ static void startQtApplication(JNIEnv */*env*/, jclass /*clazz*/)
+@@ -491,6 +491,11 @@ static void startQtApplication(JNIEnv */*env*/, jclass /*clazz*/)
          exit(ret);
  }
  
@@ -35,7 +35,7 @@ index e7eefa01364..d8f02aa70a9 100644
  static void quitQtCoreApplication(JNIEnv *env, jclass /*clazz*/)
  {
      Q_UNUSED(env);
-@@ -752,6 +757,7 @@ static JNINativeMethod methods[] = {
+@@ -760,6 +765,7 @@ static JNINativeMethod methods[] = {
      { "onNewIntent", "(Landroid/content/Intent;)V", (void *)onNewIntent },
      { "onBind", "(Landroid/content/Intent;)Landroid/os/IBinder;", (void *)onBind },
      { "updateLocale", "()V", (void *)updateLocale },

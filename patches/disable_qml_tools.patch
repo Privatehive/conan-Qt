@@ -1,0 +1,13 @@
+diff --git a/tools/CMakeLists.txt b/tools/CMakeLists.txt
+index 74f6452e61..d4ce71a8a1 100644
+--- a/tools/CMakeLists.txt
++++ b/tools/CMakeLists.txt
+@@ -25,7 +25,7 @@ if(QT_FEATURE_xmlstreamwriter)
+     # special case end
+ endif()
+ 
+-if(NOT (ANDROID OR WASM OR IOS OR VISIONOS OR rtems))
++if(NOT (ANDROID OR WASM OR IOS OR VISIONOS OR rtems OR CMAKE_CROSSCOMPILING OR QT_HOST_PATH))
+     add_subdirectory(qml)
+     if(QT_FEATURE_qml_profiler)
+         add_subdirectory(qmlprofiler)

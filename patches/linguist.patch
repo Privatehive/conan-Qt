@@ -1,18 +1,5 @@
-diff --git a/configure.cmake b/configure.cmake
-index 798078a49..51561556d 100644
---- a/configure.cmake
-+++ b/configure.cmake
-@@ -3,7 +3,7 @@
- 
- #### Tests
- 
--qt_find_package(WrapLibClang 8 PROVIDED_TARGETS WrapLibClang::WrapLibClang)
-+#qt_find_package(WrapLibClang 8 PROVIDED_TARGETS WrapLibClang::WrapLibClang)
- 
- if(TARGET WrapLibClang::WrapLibClang)
-     set(TEST_libclang "ON" CACHE BOOL "Required libclang version found." FORCE)
 diff --git a/src/linguist/CMakeLists.txt b/src/linguist/CMakeLists.txt
-index 933f882b1..2411d4914 100644
+index 1686f470e..c4bc7a201 100644
 --- a/src/linguist/CMakeLists.txt
 +++ b/src/linguist/CMakeLists.txt
 @@ -5,16 +5,13 @@ qt_exclude_tool_directories_from_default_target(
@@ -30,6 +17,6 @@ index 933f882b1..2411d4914 100644
  add_subdirectory(lupdate-pro)
 -if(QT_FEATURE_process AND QT_FEATURE_pushbutton AND QT_FEATURE_toolbutton
 +if(QT_FEATURE_linguist AND QT_FEATURE_process AND QT_FEATURE_pushbutton AND QT_FEATURE_toolbutton
-     AND QT_FEATURE_png AND TARGET Qt::Widgets)
+     AND QT_FEATURE_png AND QT_FEATURE_mdiarea AND QT_FEATURE_syntaxhighlighter
+     AND TARGET Qt::Widgets)
      add_subdirectory(linguist)
- endif()
