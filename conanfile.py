@@ -99,7 +99,7 @@ class QtConan(ConanFile):
         "widgetsstyle": None,
         "quick2style": None,
         "mmPlugin": None,
-        "qmlWorkerScript": False,
+        "qmlWorkerScript": True,
         "quick3dAssimp": False,
         "config": "none"}, **{module: False for module in submodules})
     host_options = {**default_options, **{
