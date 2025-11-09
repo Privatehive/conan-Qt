@@ -18,8 +18,8 @@ def getsubmodules(version, status_filter=None):
     with tempfile.TemporaryDirectory() as tmpdirname:
         config = configparser.ConfigParser()
         with open(os.path.join(tmpdirname, "qtmodules.conf"), 'wb') as f:
-            conn = http.client.HTTPSConnection("code.qt.io")
-            conn.request("GET", "/cgit/qt/qt5.git/plain/.gitmodules?h=%s" % str(version))
+            conn = http.client.HTTPSConnection("raw.githubusercontent.com")
+            conn.request("GET", "/qt/qt5/refs/heads/%s/.gitmodules" % str(version))
             r1 = conn.getresponse()
             f.write(r1.read())
             f.close()
