@@ -18,8 +18,8 @@ def getsubmodules(version, status_filter=None):
     with tempfile.TemporaryDirectory() as tmpdirname:
         config = configparser.ConfigParser()
         with open(os.path.join(tmpdirname, "qtmodules.conf"), 'wb') as f:
-            conn = http.client.HTTPSConnection("code.qt.io")
-            conn.request("GET", "/cgit/qt/qt5.git/plain/.gitmodules?h=%s" % str(version))
+            conn = http.client.HTTPSConnection("raw.githubusercontent.com")
+            conn.request("GET", "/qt/qt5/refs/heads/%s/.gitmodules" % str(version))
             r1 = conn.getresponse()
             f.write(r1.read())
             f.close()
@@ -76,9 +76,11 @@ class QtConan(ConanFile):
         "dbus": [True, False],
         "xml": [True, False],
         "fontconfig": [True, False],
-        "widgetsstyle": [None, "android", "fusion", "mac", "stylesheet", "windows", "windowsvista"],
+        "widgetsstyle": [None, "android", "fusion", "mac", "stylesheet", "windows", "windows11", "windowsvista"],
         "quick2style": [None, "basic", "fusion", "imagine", "ios", "macos", "material", "universal", "windows"],
         "mmPlugin": [None, "ffmpeg", "gstreamer", "avfoundation", "mediacodec", "wmf"],
+        "qmlWorkerScript": [True, False],
+        "quick3dAssimp": [True, False],
         "config": ["ANY"],
         }, **{module: [True,False] for module in submodules})
     
@@ -97,6 +99,8 @@ class QtConan(ConanFile):
         "widgetsstyle": None,
         "quick2style": None,
         "mmPlugin": None,
+        "qmlWorkerScript": True,
+        "quick3dAssimp": False,
         "config": "none"}, **{module: False for module in submodules})
     host_options = {**default_options, **{
         "shared": True, 
@@ -113,6 +117,8 @@ class QtConan(ConanFile):
         "widgetsstyle": None,
         "quick2style": None,
         "mmPlugin": None,
+        "qmlWorkerScript": True,
+        "quick3dAssimp": True,
         "config": "host",
         # modules
         "qtbase": True,
@@ -175,6 +181,12 @@ class QtConan(ConanFile):
 
         if self.settings.os != "Linux":
             self.options.rm_safe("fontconfig")
+
+        if not self.get_option("qtdeclarative"):
+            self.options.rm_safe("qmlWorkerScript")
+
+        if not self.get_option("qtquick3d"):
+            self.options.rm_safe("quick3dAssimp")
 
         if self.get_option("openssl"):
             self.options["openssl"].shared = self.get_option("shared")
@@ -239,6 +251,7 @@ class QtConan(ConanFile):
         patch(self, base_path="Qt/qtbase", patch_file=os.path.join("patches", "ios_build.patch"))
         patch(self, base_path="Qt/qtlocation", patch_file=os.path.join("patches", "disable_test_qtlocation.patch"))
         patch(self, base_path="Qt/qtgraphs", patch_file=os.path.join("patches", "disable_test_qtgraphs.patch"))
+        patch(self, base_path="Qt/qtgraphs", patch_file=os.path.join("patches", "qtgraphs_without_widgets.patch"))
         patch(self, base_path="Qt/qtdeclarative", patch_file=os.path.join("patches", "qml_plugin_init.patch"))
         patch(self, base_path="Qt/qtdeclarative", patch_file=os.path.join("patches", "disable_qml_tools.patch"))
         patch(self, base_path="Qt/qttools", patch_file=os.path.join("patches", "fix_dbusviewer_wo_xml.patch"))
@@ -470,6 +483,7 @@ class QtConan(ConanFile):
         if self.get_option("qtdeclarative"):
             tc.variables["FEATURE_qml_debug"] = self.settings.build_type == "Debug"
             tc.variables["FEATURE_qml_profiler"] = self.settings.build_type == "Debug"
+            tc.variables["FEATURE_qml_worker_script"] = self.get_option("qmlWorkerScript")
             if self.get_option("quick2style"):
                 tc.variables["FEATURE_quickcontrols2_basic"] = True
                 tc.variables["FEATURE_quickcontrols2_fusion"] = False
@@ -480,6 +494,10 @@ class QtConan(ConanFile):
                 tc.variables["FEATURE_quickcontrols2_universal"] = False
                 tc.variables["FEATURE_quickcontrols2_windows"] = False
                 tc.variables["FEATURE_quickcontrols2_" + str(self.get_option("quick2style"))] = True
+
+        if self.get_option("qtquick3d"):
+            tc.variables["FEATURE_quick3d_assimp"] = self.get_option("quick3dAssimp")
+            tc.variables["FEATURE_system_assimp"] = False
 
         if self.get_option("shared"):
             tc.variables["BUILD_SHARED_LIBS"] = True # FEATURE_shared

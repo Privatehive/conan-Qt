@@ -1,8 +1,8 @@
 {
   "version": {
     "major": 6,
-    "minor": 9,
-    "patch": 3,
+    "minor": 10,
+    "patch": 0,
     "snapshot": false
   },
   "projectName": "qt",

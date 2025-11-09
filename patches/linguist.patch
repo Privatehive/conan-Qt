@@ -1,5 +1,5 @@
 diff --git a/src/linguist/CMakeLists.txt b/src/linguist/CMakeLists.txt
-index 1686f470e..c4bc7a201 100644
+index c68dc2ee2..6f6fbd504 100644
 --- a/src/linguist/CMakeLists.txt
 +++ b/src/linguist/CMakeLists.txt
 @@ -5,16 +5,13 @@ qt_exclude_tool_directories_from_default_target(
@@ -18,5 +18,5 @@ index 1686f470e..c4bc7a201 100644
 -if(QT_FEATURE_process AND QT_FEATURE_pushbutton AND QT_FEATURE_toolbutton
 +if(QT_FEATURE_linguist AND QT_FEATURE_process AND QT_FEATURE_pushbutton AND QT_FEATURE_toolbutton
      AND QT_FEATURE_png AND QT_FEATURE_mdiarea AND QT_FEATURE_syntaxhighlighter
-     AND TARGET Qt::Widgets)
+     AND TARGET Qt::Widgets AND TARGET Qt::Quick)
      add_subdirectory(linguist)

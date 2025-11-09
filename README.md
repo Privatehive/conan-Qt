@@ -36,6 +36,8 @@
 | `widgetsstyle`                                                | `[None, "android", "fusion", "mac", "stylesheet", "windows", "windowsvista"]`              | `None`    |              |
 | `quick2style`                                                 | `[None, "basic", "fusion", "imagine", "ios", "macos", "material", "universal", "windows"]` | `None`    |              |
 | `mmPlugin`                                                    | `[None, "ffmpeg", "gstreamer", "avfoundation", "mediacodec", "wmf"]`                       | `None`    |              |
+| `qmlWorkerScript`                                             | `[True, False]`                                                                            | `True`    |              |
+| `quick3dAssimp`                                               | `[True, False]`                                                                            | `False`   |              |
 | `qtbase`                                                      | `[True, False]`                                                                            | `True`    |              |
 | [module name](https://github.com/qt/qt5/blob/dev/.gitmodules) | `[True, False]`                                                                            | `False`   |              |
 
