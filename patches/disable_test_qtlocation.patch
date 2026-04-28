@@ -1,26 +1,26 @@
 diff --git a/CMakeLists.txt b/CMakeLists.txt
-index f979951b..94c7cce2 100644
+index 87c786590..e80e5e97e 100644
 --- a/CMakeLists.txt
 +++ b/CMakeLists.txt
-@@ -27,7 +27,7 @@ endif()
+@@ -32,7 +32,7 @@ endif()
  # Need to search for positioning only after we make sure that it's not WASM.
  # Otherwise we'll get an "QtPositioning not found" error in WASM build.
  find_package(Qt6 ${PROJECT_VERSION} CONFIG OPTIONAL_COMPONENTS
--    Qml Quick Network Test QuickTest Positioning PositioningQuick QuickShapesPrivate
-+    Qml Quick Network Positioning PositioningQuick QuickShapesPrivate
+-    Qml Quick Network Test QuickTest Positioning PositioningQuick QuickShapes
++    Qml Quick Network Positioning PositioningQuick QuickShapes
  )
  
  find_package(Qt6 ${PROJECT_VERSION} QUIET CONFIG OPTIONAL_COMPONENTS
-@@ -43,6 +43,6 @@ macro(assertTargets)
+@@ -48,6 +48,6 @@ macro(assertTargets)
      endforeach()
  endmacro()
  
--assertTargets(Qml Quick Network Test QuickTest Positioning PositioningQuick QuickShapesPrivate)
-+assertTargets(Qml Quick Network Positioning PositioningQuick QuickShapesPrivate)
+-assertTargets(Qml Quick Network Test QuickTest Positioning PositioningQuick QuickShapes)
++assertTargets(Qml Quick Network Positioning PositioningQuick QuickShapes)
  
  qt_build_repo()
 diff --git a/tests/auto/CMakeLists.txt b/tests/auto/CMakeLists.txt
-index af916073..72d50764 100644
+index af9160732..72d507644 100644
 --- a/tests/auto/CMakeLists.txt
 +++ b/tests/auto/CMakeLists.txt
 @@ -2,7 +2,6 @@

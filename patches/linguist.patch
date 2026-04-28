@@ -1,20 +1,22 @@
 diff --git a/src/linguist/CMakeLists.txt b/src/linguist/CMakeLists.txt
-index c68dc2ee2..6f6fbd504 100644
+index 195e4bb4a..9b2e3e617 100644
 --- a/src/linguist/CMakeLists.txt
 +++ b/src/linguist/CMakeLists.txt
-@@ -5,16 +5,13 @@ qt_exclude_tool_directories_from_default_target(
+@@ -5,10 +5,6 @@ qt_exclude_tool_directories_from_default_target(
      linguist
  )
  
 -if(NOT QT_FEATURE_linguist)
 -    return()
 -endif()
- add_subdirectory(lconvert)
- add_subdirectory(lprodump)
- add_subdirectory(lrelease)
- add_subdirectory(lrelease-pro)
+-
+ add_subdirectory(shared/qmake-parser)
+ add_subdirectory(shared/trlib)
+ add_subdirectory(shared/linguistproject)
+@@ -20,7 +16,7 @@ add_subdirectory(lrelease-pro)
  add_subdirectory(lupdate)
  add_subdirectory(lupdate-pro)
+ add_subdirectory(ltext2id)
 -if(QT_FEATURE_process AND QT_FEATURE_pushbutton AND QT_FEATURE_toolbutton
 +if(QT_FEATURE_linguist AND QT_FEATURE_process AND QT_FEATURE_pushbutton AND QT_FEATURE_toolbutton
      AND QT_FEATURE_png AND QT_FEATURE_mdiarea AND QT_FEATURE_syntaxhighlighter
