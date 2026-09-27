@@ -26,6 +26,7 @@
 | `fPIC`                                                        | `[True, False]`                                                                            | `True`    |              |
 | `lto`                                                         | `[True, False]`                                                                            | `False`   |              |
 | `opengl`                                                      | `["no", "es2", "es3", "es31", "es32", "desktop", "dynamic"]`                               | `"no"`    |              |
+| `vulkan`                                                      | `[True, False]`                                                                            | `"False"` |              |
 | `openssl`                                                     | `[True, False]`                                                                            | `"False"` |              |
 | `openssl_hash`                                                | `[True, False]`                                                                            | `"False"` | QTBUG-136223 |
 | `GUI`                                                         | `[True, False]`                                                                            | `False`   |              |
