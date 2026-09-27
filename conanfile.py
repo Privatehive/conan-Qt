@@ -69,6 +69,7 @@ class QtConan(ConanFile):
         "fPIC": [True, False],
         "lto": [True, False],
         "opengl": ["no", "es2", "es3", "es31", "es32", "desktop", "dynamic"],
+        "vulkan": [True, False],
         "openssl": [True, False],
         "openssl_hash": [True, False],
         "GUI": [True, False],
@@ -89,7 +90,8 @@ class QtConan(ConanFile):
         "fPIC": True,
         "lto": False,
         "opengl": "no",
-        "openssl": False, 
+        "vulkan": False,
+        "openssl": False,
         "openssl_hash": False,
         "GUI": False, 
         "widgets": False,
@@ -107,6 +109,7 @@ class QtConan(ConanFile):
         "fPIC": True,
         "lto": False,
         "opengl": "desktop",
+        "vulkan": False,
         "openssl": False,
         "openssl_hash": False,
         "GUI": True, 
@@ -228,6 +231,8 @@ class QtConan(ConanFile):
                 pack_names.extend(["libwayland-dev", "libfontconfig1-dev", "libfreetype6-dev", "libx11-dev", "libx11-xcb-dev", "libxext-dev", "libxfixes-dev", "libxi-dev", "libxrender-dev", "libxcb1-dev", "libxcb-cursor-dev", "libxcb-glx0-dev", "libxcb-keysyms1-dev", "libxcb-image0-dev", "libxcb-shm0-dev", "libxcb-icccm4-dev", "libxcb-sync-dev", "libxcb-xfixes0-dev", "libxcb-shape0-dev", "libxcb-randr0-dev", "libxcb-render-util0-dev", "libxcb-util-dev", "libxcb-xinerama0-dev", "libxcb-xkb-dev", "libxkbcommon-dev", "libxkbcommon-x11-dev"])
                 if self.get_option("opengl") == "desktop":
                     pack_names.append("libgl1-mesa-dev")
+            if self.get_option("vulkan"):
+                pack_names.append("libvulkan-dev")
             if self.get_option("qtmultimedia"):
                 pack_names.extend(["libasound2-dev", "libpulse-dev"])
 
@@ -517,7 +522,10 @@ class QtConan(ConanFile):
         #cmake.definitions["FEATURE_testlib"] = "OFF"
 
         tc.variables["FEATURE_openvg"] = False
-        tc.variables["FEATURE_vulkan"] = False
+        if self.get_option("vulkan"):
+            tc.variables["FEATURE_vulkan"] = True
+        else:
+            tc.variables["FEATURE_vulkan"] = False
         tc.variables["FEATURE_opengl"] = False
         tc.variables["FEATURE_opengl_desktop"] = False
         tc.variables["FEATURE_opengl_dynamic"] = False
