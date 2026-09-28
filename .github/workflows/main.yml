@@ -64,6 +64,19 @@ jobs:
       conan_options: "qt/*:GUI=True,qt/*:qtbase=True,qt/*:widgets=True,qt/*:qtdeclarative=True,qt/*:qtsvg=True"
       import_conan_cache: true
 
+  build_linux_rpi_armv8:
+    name: "Linux (Raspberry Pi)"
+    uses: Privatehive/conan-workflows/.github/workflows/createPackage.yml@master
+    needs: [ build_linux_qt_host ]
+    if: ${{ success() }}
+    with:
+      name: "armv8"
+      image: "ubuntu-22.04"
+      conan_host_profile_path: "profiles/raspberrypiosArmv8.host.profile"
+      conan_remotes: https://conan.privatehive.de/artifactory/api/conan/public-conan
+      conan_options: "qt/*:GUI=True,qt/*:qtbase=True,qt/*:widgets=True,qt/*:qtdeclarative=True,qt/*:qtsvg=True"
+      import_conan_cache: true
+
   build_android_x86:
     name: "Android"
     uses: Privatehive/conan-workflows/.github/workflows/createPackage.yml@master
@@ -136,7 +149,7 @@ jobs:
   upload_recipe:
     name: "Finalize"
     uses: Privatehive/conan-workflows/.github/workflows/uploadRecipe.yml@master
-    needs: [ build_linux_x86_64, build_windows_x86_64, build_macos_armv8, build_linux_rpi_armv6, build_android_x86, build_android_x86_64, build_android_armv7, build_android_armv8, build_ios_armv8 ]
+    needs: [ build_linux_x86_64, build_windows_x86_64, build_macos_armv8, build_linux_rpi_armv6, build_linux_rpi_armv8, build_android_x86, build_android_x86_64, build_android_armv7, build_android_armv8, build_ios_armv8 ]
     if: ${{ success() }}
     secrets: inherit
     with:
