@@ -52,7 +52,7 @@ jobs:
       export_conan_cache: true
 
   build_linux_rpi_armv6:
-    name: "Linux (Raspberry Pi)"
+    name: "Linux (Raspberry Pi OS 32-bit)"
     uses: Privatehive/conan-workflows/.github/workflows/createPackage.yml@master
     needs: [ build_linux_qt_host ]
     if: ${{ success() }}
@@ -65,7 +65,7 @@ jobs:
       import_conan_cache: true
 
   build_linux_rpi_armv8:
-    name: "Linux (Raspberry Pi)"
+    name: "Linux (Raspberry Pi OS 64-bit)"
     uses: Privatehive/conan-workflows/.github/workflows/createPackage.yml@master
     needs: [ build_linux_qt_host ]
     if: ${{ success() }}
