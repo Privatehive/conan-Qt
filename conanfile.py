@@ -224,7 +224,8 @@ class QtConan(ConanFile):
             self.options["ffmpeg"].with_libmp3lame = False
 
     def system_requirements(self):
-        if self.settings.os == "Linux":
+        # When cross building, system libraries are provided by the toolchain sysroot
+        if self.settings.os == "Linux" and not cross_building(self):
             apt = Apt(self)
             pack_names = []
             if self.get_option("GUI"):
