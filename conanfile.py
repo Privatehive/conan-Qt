@@ -286,6 +286,7 @@ class QtConan(ConanFile):
         tc.variables["QT_BUILD_SUBMODULES"] = ";".join(module_list)
         #tc.variables["CMAKE_FIND_DEBUG_MODE"] = True
         tc.blocks.remove("find_paths") # CMAKE_FIND_PACKAGE_PREFER_CONFIG should be false (the default). We want to use Find modules first
+        tc.variables["FEATURE_libudev"] = False # enabled below when targeting the raspberry pi
         if cross_building(self):
             tc.variables["QT_FORCE_FIND_TOOLS"] = False
             if self.settings.os == "Android":
@@ -301,12 +302,13 @@ class QtConan(ConanFile):
                 tc.variables["FEATURE_pcre2"] = True
                 #tc.variables["FEATURE_kms"] = True
                 tc.variables["FEATURE_system_libb2"] = False
-                #tc.variables["FEATURE_libudev"] = False
+                tc.variables["FEATURE_libudev"] = True
                 tc.variables["FEATURE_mtdev"] = False
                 tc.variables["FEATURE_tslib"] = False
                 tc.variables["FEATURE_mng"] = False
                 tc.variables["FEATURE_pkg_config"] = True
-                #tc.variables["FEATURE_libinput"] = True
+                tc.variables["FEATURE_libinput"] = True
+                tc.variables["FEATURE_xkbcommon"] = True
                 tc.variables["FEATURE_UNITY_BUILD"] = False
                 tc.variables["FEATURE_use_gold_linker"] = False
                 tc.variables["FEATURE_use_gold_linker_alias"] = False
@@ -356,7 +358,6 @@ class QtConan(ConanFile):
         tc.variables["FEATURE_glib"] = False
         tc.variables["FEATURE_slog2"] = False
         tc.variables["FEATURE_zstd"] = False
-        tc.variables["FEATURE_libudev"] = False
         if self.get_option("qtdoc"):
             #tc.variables["TEST_libclang"] = True
             tc.variables["QT_FEATURE_clang_rtti"] = True
