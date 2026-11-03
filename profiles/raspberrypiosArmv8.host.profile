@@ -9,4 +9,4 @@ build_type=Release
 qt/*:opengl=es2
 [tool_requires]
 cmake/3.23.5
-raspberry-pi-toolchain/bullseye@de.privatehive/stable
+raspberry-pi-toolchain/bullseye-gcc13.4@de.privatehive/stable

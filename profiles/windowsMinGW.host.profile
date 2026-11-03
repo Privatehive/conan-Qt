@@ -2,7 +2,7 @@
 os=Windows
 arch=x86_64
 compiler=gcc
-compiler.version=13
+compiler.version=13.2
 compiler.libcxx=libstdc++11
 compiler.threads=posix
 compiler.exception=seh
