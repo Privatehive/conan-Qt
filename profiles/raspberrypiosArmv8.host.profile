@@ -1,0 +1,12 @@
+[settings]
+os=Linux
+arch=armv8
+compiler=gcc
+compiler.version=13.4
+compiler.libcxx=libstdc++11
+build_type=Release
+[options]
+qt/*:opengl=es2
+[tool_requires]
+cmake/3.23.5
+raspberry-pi-toolchain/bullseye-gcc13.4@de.privatehive/stable

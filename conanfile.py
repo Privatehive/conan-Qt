@@ -6,7 +6,7 @@ from conan.tools.cmake import CMake, CMakeToolchain
 from conan.tools.files import patch, get, rmdir, replace_in_file, download
 from conan.tools.build import cross_building
 from conan.tools.system.package_manager import Apt
-from conan.tools.env import VirtualBuildEnv
+from conan.tools.env import VirtualBuildEnv, VirtualRunEnv
 import json, os
 import configparser
 import tempfile
@@ -224,11 +224,12 @@ class QtConan(ConanFile):
             self.options["ffmpeg"].with_libmp3lame = False
 
     def system_requirements(self):
-        if self.settings.os == "Linux":
+        # When cross building, system libraries are provided by the toolchain sysroot
+        if self.settings.os == "Linux" and not cross_building(self):
             apt = Apt(self)
-            pack_names = []
+            pack_names = ["libudev-dev"]
             if self.get_option("GUI"):
-                pack_names.extend(["libwayland-dev", "libfontconfig1-dev", "libfreetype6-dev", "libx11-dev", "libx11-xcb-dev", "libxext-dev", "libxfixes-dev", "libxi-dev", "libxrender-dev", "libxcb1-dev", "libxcb-cursor-dev", "libxcb-glx0-dev", "libxcb-keysyms1-dev", "libxcb-image0-dev", "libxcb-shm0-dev", "libxcb-icccm4-dev", "libxcb-sync-dev", "libxcb-xfixes0-dev", "libxcb-shape0-dev", "libxcb-randr0-dev", "libxcb-render-util0-dev", "libxcb-util-dev", "libxcb-xinerama0-dev", "libxcb-xkb-dev", "libxkbcommon-dev", "libxkbcommon-x11-dev"])
+                pack_names.extend(["libwayland-dev", "libfontconfig1-dev", "libfreetype6-dev", "libx11-dev", "libx11-xcb-dev", "libxext-dev", "libxfixes-dev", "libxi-dev", "libxrender-dev", "libxcb1-dev", "libxcb-cursor-dev", "libxcb-glx0-dev", "libxcb-keysyms1-dev", "libxcb-image0-dev", "libxcb-shm0-dev", "libxcb-icccm4-dev", "libxcb-sync-dev", "libxcb-xfixes0-dev", "libxcb-shape0-dev", "libxcb-randr0-dev", "libxcb-render-util0-dev", "libxcb-util-dev", "libxcb-xinerama0-dev", "libxcb-xkb-dev", "libxkbcommon-dev", "libxkbcommon-x11-dev", "libinput-dev"])
                 if self.get_option("opengl") == "desktop":
                     pack_names.append("libgl1-mesa-dev")
             if self.get_option("vulkan"):
@@ -300,12 +301,11 @@ class QtConan(ConanFile):
                 tc.variables["FEATURE_pcre2"] = True
                 #tc.variables["FEATURE_kms"] = True
                 tc.variables["FEATURE_system_libb2"] = False
-                #tc.variables["FEATURE_libudev"] = False
                 tc.variables["FEATURE_mtdev"] = False
                 tc.variables["FEATURE_tslib"] = False
                 tc.variables["FEATURE_mng"] = False
                 tc.variables["FEATURE_pkg_config"] = True
-                #tc.variables["FEATURE_libinput"] = True
+                tc.variables["FEATURE_xkbcommon"] = True
                 tc.variables["FEATURE_UNITY_BUILD"] = False
                 tc.variables["FEATURE_use_gold_linker"] = False
                 tc.variables["FEATURE_use_gold_linker_alias"] = False
@@ -322,6 +322,9 @@ class QtConan(ConanFile):
                 tc.variables["FEATURE_system_freetype"] = False
             tc.variables["FEATURE_tslib"] = False # disable multitouch input for now
             tc.variables["FEATURE_mtdev"] = False # disable multitouch input for now
+            tc.variables["FEATURE_libudev"] = True
+            if self.get_option("GUI"):
+                tc.variables["FEATURE_libinput"] = True # requires FEATURE_libudev
         if self.settings.build_type == "Debug":
             tc.variables["FEATURE_optimize_debug"] = False
         tc.variables["FEATURE_system_zlib"] = False
@@ -355,7 +358,6 @@ class QtConan(ConanFile):
         tc.variables["FEATURE_glib"] = False
         tc.variables["FEATURE_slog2"] = False
         tc.variables["FEATURE_zstd"] = False
-        tc.variables["FEATURE_libudev"] = False
         if self.get_option("qtdoc"):
             #tc.variables["TEST_libclang"] = True
             tc.variables["QT_FEATURE_clang_rtti"] = True
@@ -449,7 +451,7 @@ class QtConan(ConanFile):
             tc.variables["FEATURE_avfoundation"] = False
             if self.get_option("mmPlugin") == "ffmpeg":
                 tc.variables["FEATURE_ffmpeg"] = True
-                tc.variables["FFMPEG_DIR"] = self.dependencies["ffmpeg"].package_folder
+                tc.variables["FFMPEG_DIR"] = self.dependencies["ffmpeg"].package_folder.replace("\\", "/")
                 tc.variables["QT_DEFAULT_MEDIA_BACKEND"] = "ffmpeg"
             elif self.get_option("mmPlugin") == "wmf":
                 tc.variables["FEATURE_wmf"] = True
@@ -566,7 +568,7 @@ class QtConan(ConanFile):
             tc.variables["FEATURE_openssl_linked"] = True
             tc.variables["FEATURE_openssl_runtime"] = False
             tc.variables["FEATURE_openssl_hash"] = self.get_option("openssl_hash") # Bug: https://bugreports.qt.io/browse/QTBUG-136223
-            tc.variables["OPENSSL_ROOT_DIR"] = self.dependencies["openssl"].package_folder
+            tc.variables["OPENSSL_ROOT_DIR"] = self.dependencies["openssl"].package_folder.replace("\\", "/")
         else:
             tc.variables["FEATURE_openssl"] = False
             tc.variables["FEATURE_opensslv11"] = False
@@ -576,6 +578,9 @@ class QtConan(ConanFile):
 
         tc.generate()
         ms.generate()
+        if not cross_building(self):
+            # Qt tools executed during the build (e.g. qmlcachegen) load shared dependencies like OpenSSL
+            VirtualRunEnv(self).generate(scope="build")
 
     def build(self):
 
@@ -615,6 +620,9 @@ class QtConan(ConanFile):
         if not cross_building(self):
             self.buildenv_info.prepend_path("PATH", os.path.join(self.package_folder, "bin"))
             self.buildenv_info.prepend_path("PATH", os.path.join(self.package_folder, "qttools", "bin"))
+            # Qt tools executed by consumers (e.g. lupdate, qmlcachegen) load shared dependencies like OpenSSL
+            for dep in self.dependencies.host.values():
+                self.buildenv_info.append_path("PATH", dep.cpp_info.bindirs)
         else:
             # Forward the build env from the Qt Host
             Qt = self.dependencies.build[self.name]
