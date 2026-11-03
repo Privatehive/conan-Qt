@@ -6,7 +6,7 @@ from conan.tools.cmake import CMake, CMakeToolchain
 from conan.tools.files import patch, get, rmdir, replace_in_file, download
 from conan.tools.build import cross_building
 from conan.tools.system.package_manager import Apt
-from conan.tools.env import VirtualBuildEnv
+from conan.tools.env import VirtualBuildEnv, VirtualRunEnv
 import json, os
 import configparser
 import tempfile
@@ -578,6 +578,9 @@ class QtConan(ConanFile):
 
         tc.generate()
         ms.generate()
+        if not cross_building(self):
+            # Qt tools executed during the build (e.g. qmlcachegen) load shared dependencies like OpenSSL
+            VirtualRunEnv(self).generate(scope="build")
 
     def build(self):
 
@@ -617,6 +620,9 @@ class QtConan(ConanFile):
         if not cross_building(self):
             self.buildenv_info.prepend_path("PATH", os.path.join(self.package_folder, "bin"))
             self.buildenv_info.prepend_path("PATH", os.path.join(self.package_folder, "qttools", "bin"))
+            # Qt tools executed by consumers (e.g. lupdate, qmlcachegen) load shared dependencies like OpenSSL
+            for dep in self.dependencies.host.values():
+                self.buildenv_info.append_path("PATH", dep.cpp_info.bindirs)
         else:
             # Forward the build env from the Qt Host
             Qt = self.dependencies.build[self.name]
