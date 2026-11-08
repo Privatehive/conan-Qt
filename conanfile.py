@@ -3,7 +3,7 @@
 
 from conan import ConanFile
 from conan.tools.cmake import CMake, CMakeToolchain
-from conan.tools.files import patch, get, rmdir, replace_in_file, download
+from conan.tools.files import patch, get, rmdir, replace_in_file, download, copy
 from conan.tools.build import cross_building
 from conan.tools.system.package_manager import Apt
 from conan.tools.env import VirtualBuildEnv, VirtualRunEnv
@@ -599,6 +599,13 @@ class QtConan(ConanFile):
         os.mkdir(os.path.join(self.package_folder, "include")) # macos: if only qtcore is built, include folder is missing but required by find_package(Qt6 REQUIRED Core)
         cmake = CMake(self)
         cmake.install()
+        if self.get_option("openssl") and self.get_option("shared") and self.settings.os in ["Macos", "Linux"]:
+            # The Qt libraries link OpenSSL via @rpath ($ORIGIN), but the rpath of the Qt tools (lupdate, qmlcachegen, ...)
+            # only covers Qt's own lib folder. DYLD_LIBRARY_PATH is no help on macOS because SIP strips it when ninja
+            # spawns the tools via /bin/sh, so ship the OpenSSL libraries next to the Qt libraries.
+            for libdir in self.dependencies["openssl"].cpp_info.libdirs:
+                for pattern in ["libssl*.dylib", "libcrypto*.dylib", "libssl.so*", "libcrypto.so*"]:
+                    copy(self, pattern, libdir, os.path.join(self.package_folder, "lib"))
 
     def package_info(self):
         self.cpp_info.set_property("cmake_find_mode", "none")
